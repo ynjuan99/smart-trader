@@ -42,18 +42,18 @@ namespace OptimizerModel
             return true;
         }
       
-        private static DataContext instance;
+        private static DataContext _instance;
         public static void CreateContext(string path)
         {
-            instance = new DataContext(path);
+            _instance = new DataContext(path);
         }
 
         public static DataContext Instance
         {
             get
             {
-                if (instance == null) throw new InvalidOperationException("Must Create Context before use.");
-                return instance;
+                if (_instance == null) throw new InvalidOperationException("Must Create Context before use.");
+                return _instance;
             }
         }
         #endregion

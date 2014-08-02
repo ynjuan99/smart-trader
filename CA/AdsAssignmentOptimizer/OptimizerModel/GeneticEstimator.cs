@@ -121,12 +121,12 @@ namespace OptimizerModel
 
         private static double DenormalizeRate(double value)
         {
-            return DataContext.Denormalize(value, 200d, 1200d, 0.999d);
+            return DataContext.Denormalize(value, 200d, 2000d, 0.999d);
         }
 
         private static double DenormalizeFactor(double value)
         {
-            return DataContext.Denormalize(value, 10d, 20d, 0.999d);
+            return DataContext.Denormalize(value, 10d, 100d, 0.999d);
         }
 
         private static double DenormalizeTime(double value)

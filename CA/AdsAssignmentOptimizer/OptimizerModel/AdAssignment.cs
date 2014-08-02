@@ -8,35 +8,35 @@ namespace OptimizerModel
 {
     public class AdAssignment
     {
-        private readonly AdPlacement[] placements;
+        private readonly AdPlacement[] _placements;
 
         public AdAssignment(params AdPlacement[] placements)
         {
-            this.placements = placements;
+            _placements = placements;
         }
 
         public int PlacementCount
         {
-            get { return placements.Length; }
+            get { return _placements.Length; }
         }
 
         public AdPlacement this[int i]
         {
-            get { return i >= 0 && i < placements.Length ? placements[i] : null; }            
+            get { return i >= 0 && i < _placements.Length ? _placements[i] : null; }            
         }
 
         public double UserClicks { get; set; }
 
         public double TotalCost
         {
-            get { return placements.Sum(o => o.Cost); }
+            get { return _placements.Sum(o => o.Cost); }
         }
 
         public override string ToString()
         {
             var builder = new StringBuilder(300);
             builder.AppendLine("Ad Assignment:");
-            foreach (var item in placements)
+            foreach (var item in _placements)
             {
                 builder.AppendLine("\t" + item);
             }

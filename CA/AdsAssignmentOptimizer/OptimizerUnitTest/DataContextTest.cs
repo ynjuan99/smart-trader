@@ -11,7 +11,7 @@ namespace OptimizerUnitTest
         [TestMethod]
         public void TestMethod1()
         {
-            var path = @"D:\SmartTrader\CA\AdsAssignmentOptimizer\WS1Data.csv";
+            var path = @"D:\SmartTrader\SVN\CA\AdsAssignmentOptimizer\WS1Data.csv";
             //var plan = AdAssignmentPlanner.PlanViaNN(path);
             #region Result
             /*
