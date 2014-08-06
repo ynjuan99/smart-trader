@@ -168,8 +168,7 @@ namespace OptimizerModel
                     DenormalizeRate(_best[2 + i * 3 + 2]));
                 builder.AppendLine();
             }
-            var factors = new double[_best.Length - (2 + DataContext.Websites.Count * 3)];
-            Array.Copy(_best, 2 + DataContext.Websites.Count * 3, factors, 0, factors.Length);
+            var factors = _best.Skip(2 + DataContext.Websites.Count * 3);
             builder.AppendFormat("\tScale Factors - [{0}]", string.Join(",", factors.Select(o => DenormalizeFactor(o).ToString("F3"))));
 
             return builder.ToString();
