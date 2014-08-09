@@ -19,7 +19,8 @@ namespace Model
         private bool _stopTraining;
         private int _inputDimension;
         private int _outputDimension;
-        public NeuralNetworkModel() : this(2, 0.1, 0.001, 10)
+        private readonly int _maxTry;
+        public NeuralNetworkModel() : this(2, 0.1, 0.001, 10, 0.8)
         {
         }
 
@@ -27,14 +28,17 @@ namespace Model
             double sigmoidAlphaValue,
             double learningRate,
             double momentum,
-            int maxIterations)
+            int maxIterations,
+            double autoStopRatio)
         {
             _sigmoidAlphaValue = sigmoidAlphaValue;
             _learningRate = learningRate;
             _momentum = momentum;
             _maxIterations = maxIterations;
+            _maxTry = (int)(_maxIterations * Math.Max(0.5, Math.Min(1.0, autoStopRatio)));
         }
 
+        public double LeastTrainingMse { get; private set; }
         public void Train(IList<DataTuple> samples)
         {
             _inputDimension = samples[0].Inputs.Length;
@@ -50,25 +54,34 @@ namespace Model
             var inputs = samples.Select(o => o.Inputs).ToArray();
             var outputs = samples.Select(o => o.Outputs).ToArray();
             int iteration = 0;
+
+            int noChangeCount = 0;
+            double previousMse = 0, leastMse = double.MaxValue;
             while (!_stopTraining)
             {
-                learning.RunEpoch(inputs, outputs);
-                if (++iteration > _maxIterations) break;
+                double currentMse = learning.RunEpoch(inputs, outputs) / (samples.Count * _outputDimension);
+                if (currentMse < leastMse) leastMse = currentMse;
+
+                if (iteration > 0)
+                {
+                    if (Math.Abs(1 - currentMse / previousMse) <= 0.0001) noChangeCount++;
+                    else noChangeCount = 0;
+
+                    if (noChangeCount > _maxTry) break;
+                }
+                
+                iteration++;
+                if (iteration > _maxIterations) break;
+                previousMse = currentMse;
             }
 
             _stopTraining = false;
+            LeastTrainingMse = leastMse;
         }
 
-        public double[] Validate(IList<DataTuple> samples)
+        public double Validate(IList<DataTuple> samples)
         {
-            var delta = samples.AsParallel().Select(o => GetErrorVector(o)).ToArray();
-            var results = new double[_outputDimension];
-            for (int i = 0; i < _outputDimension; i++)
-            {
-                results[i] = Math.Sqrt(delta.Average(o => o[i]));
-            }
-
-            return results;
+            return samples.Sum(o => AggregateError(o)) / (samples.Count * _outputDimension);
         }
 
         public double[] Estimate(DataTuple sample)
@@ -78,16 +91,16 @@ namespace Model
             return _network.Compute(sample.Inputs);
         }
 
-        private double[] GetErrorVector(DataTuple sample)
+        private double AggregateError(DataTuple sample)
         {
             var output = Estimate(sample);
-            var errors = new double[_outputDimension];
+            double error = 0;
             for (int i = 0; i < _outputDimension; i++)
             {
-                errors[i] = Math.Pow(output[i] - errors[i], 2);
+                error += Math.Pow(output[i] - sample.Outputs[i], 2);
             }
 
-            return errors;
+            return error;
         }
 
         public void StopTrain()
@@ -100,8 +113,8 @@ namespace Model
         {
             var builder = new StringBuilder(300);
             builder.AppendLine("Optimal Neural Network Parameters:");            
-            builder.AppendFormat("\tInput nodes - {0}, Output nodes - {1}, Hidden Layers - {2}", 
-                _network.InputsCount, _network.Output.Length, _network.Layers.Length - 1);
+            builder.AppendFormat("\tInput nodes - {0}, Output nodes - {1}, Hidden Layers - {2}, Least Training MSE: {3}", 
+                _network.InputsCount, _network.Output.Length, _network.Layers.Length - 1, LeastTrainingMse);
             builder.AppendLine();
             for (int i = 0; i < _network.Layers.Length - 1; i++)
             {
