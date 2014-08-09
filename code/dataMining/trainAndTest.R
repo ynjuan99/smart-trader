@@ -9,7 +9,13 @@ library(plyr)
 library(rattle)
 library(rpart.plot)
 
+STATIC_SEED=42
+
+# model.dataset = dataset.train
+# test.dataset = dataset.test
+
 trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
+  set.seed(STATIC_SEED)
   
   # Decision Tree 
 #   model.rpart <- rpart(as.formula(concatenate(col.target," ~ .")),
@@ -22,13 +28,15 @@ trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
 #   fancyRpartPlot(model.rpart, main="Decision Tree Splits")
   
   # Build a Support Vector Machine model.
+  set.seed(STATIC_SEED)
   model.ksvm <- ksvm(as.formula(concatenate("as.factor(", concatenate(col.target,") ~ ."))),
                      data=model.dataset,
                      kernel="rbfdot",
                      prob.model=TRUE)
   
   #neutral net
-  #using Sum of Squares Residuals to get best number for Hidden Layer Nodes
+  set.seed(STATIC_SEED)
+#using Sum of Squares Residuals to get best number for Hidden Layer Nodes
 #   sumSquaresResiduals = 99999999999
 #   nohiddenNodes = 0
 #   for(hiddenNodes in 90:120) { #round(length(col.input)*0.12)) {
@@ -50,6 +58,7 @@ trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
                      size=nohiddenNodes, skip=TRUE, MaxNWts=10000, trace=FALSE, maxit=100)
   
   # Random Forest 
+  set.seed(STATIC_SEED)
   model.rf <- randomForest(as.formula(concatenate("as.factor(", concatenate(col.target,") ~ ."))),
                            data=model.dataset,
                            ntree=500,
@@ -62,6 +71,7 @@ trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
 #   varImpPlot(model.rf, main="Variable Importance of Random Forest")
   
   #Ada boost
+  set.seed(STATIC_SEED)
   model.ada <- ada(as.formula(concatenate(col.target," ~ .")),
                    data=model.dataset,
                    control=rpart.control(maxdepth=30,
@@ -98,13 +108,15 @@ trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
     as.integer(results$ada) -4 #to make 0s and 1s
   results$voted = results$votes - 2 #become -ve, +ve
   results$voted = results$voted/abs(results$voted)
+  results$voted[is.na(results$voted)] = 0
   results$voted[results$voted==-1] = 0
+
   #probability votes
   results$all.prob =  ( #results$rpart.prob.1 *0.25 + 
-                         results$ksvm.prob.1 *0.2 + 
-                         results$nnet.prob *0.3 + 
-                        results$rf.prob.1 *0.3+
-                         results$ada.prob.2 *0.2) 
+                         results$ksvm.prob.1 *0.25 + 
+                         results$nnet.prob *0.25 + 
+                        results$rf.prob.1 *0.25+
+                         results$ada.prob.2 *0.25) 
   results$voted.prob = results$all.prob - 0.5
   results$voted.prob = results$voted.prob/abs(results$voted.prob)
   results$voted.prob[results$voted.prob==-1] = 0
