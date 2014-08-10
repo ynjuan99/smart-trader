@@ -13,7 +13,7 @@ library(stringr)
 # momEndDate = '2009-01-30'
 dayDiff = 20
 
-getMonthlyData <- function(startDate, testDate, momEndDate) {
+getMonthlyData <- function(sector, startDate, testDate, momEndDate) {
   library(RODBC);
   channel <- odbcConnect("localDB") 
   securities <- sqlQuery(channel, "
@@ -23,7 +23,8 @@ getMonthlyData <- function(startDate, testDate, momEndDate) {
   table(securities$SML)
   table(securities$SML, securities$GICS_SEC) 
   secIds = securities[ (securities$SML == 'L' | securities$SML == 'M')
-                      & str_trim(securities$GICS_SEC) == 'Financials', 
+#                       & str_trim(securities$GICS_SEC) == 'Financials', 
+                      & str_trim(securities$GICS_SEC) == sector, 
                       'SecId']
   #Using Financials Large and Mid <- 169
   ######################
@@ -33,10 +34,10 @@ getMonthlyData <- function(startDate, testDate, momEndDate) {
              SELECT *
              FROM [S&P].[dbo].[tb_FactorScore] 
              WHERE [DATE] >= '", startDate, "' AND [DATE] < '", momEndDate,
-             "' AND SECTOR = 'Financials' 
-             AND SecId in (", paste(secIds,collapse=","), 
+             "' AND SecId in (", paste(secIds,collapse=","), 
              ") ORDER by [Date], SecId")) #nov and dec 2008
-  
+#AND SECTOR = 'Financials' 
+
   #use price momentum instead
   priceMom <- sqlQuery(channel, paste0(" 
                  SELECT *
