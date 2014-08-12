@@ -124,6 +124,7 @@ SELECT  Date
       , ISNULL(ISNULL(PriceMA200, AVG(PriceMA200) OVER ()), 0) AS PriceMA200
       , ISNULL(ISNULL(Price52WHigh, AVG(Price52WHigh) OVER ()), 0) AS Price52WHigh
       , ISNULL(ISNULL(Price52WLow, AVG(Price52WLow) OVER ()), 0) AS Price52WLow
+      , ISNULL(ISNULL(PMOM20Advanced, AVG(PMOM20Advanced) OVER ()), 0) AS PMOM20Advanced
 FROM    dbo.tb_FactorScore TABLESAMPLE (33 PERCENT)
 WHERE   Sector = @sector
         AND YEAR(Date) = @year
@@ -144,8 +145,8 @@ WHERE   Sector = @sector
                         {
                             var date = (DateTime)reader[0];
                             var sectorId = (int)reader[1];
-                            //3: descriptive columns, 10: output columns
-                            int width = reader.FieldCount - 3 - 10 + outputColumns.Length;
+                            //3: descriptive columns, 11: output columns
+                            int width = reader.FieldCount - 3 - 11 + outputColumns.Length;
                             var inputs = new double[width];
                             for (int i = 0; i < width; i++)
                             {
@@ -166,5 +167,6 @@ WHERE   Sector = @sector
 
             return result;
         }
+
     }
 }

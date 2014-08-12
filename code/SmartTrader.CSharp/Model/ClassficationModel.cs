@@ -9,7 +9,7 @@ using Repository;
 
 namespace Model
 {
-    public class NeuralNetworkModel
+    public class ClassificationModel
     {                
         private readonly double _sigmoidAlphaValue;
         private readonly double _learningRate;
@@ -20,11 +20,11 @@ namespace Model
         private int _inputDimension;
         private int _outputDimension;
         private readonly int _maxTry;
-        public NeuralNetworkModel() : this(2, 0.1, 0.001, 10, 0.8)
+        public ClassificationModel() : this(2, 0.1, 0.001, 10, 0.8)
         {
         }
 
-        public NeuralNetworkModel(
+        public ClassificationModel(
             double sigmoidAlphaValue,
             double learningRate,
             double momentum,
@@ -44,7 +44,8 @@ namespace Model
             _inputDimension = samples[0].Inputs.Length;
             _outputDimension = samples[0].Outputs.Length;
 
-            _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension * 2, 1);
+            //2 hidden layers
+            _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension * 2, 6, _outputDimension);
             var learning = new BackPropagationLearning(_network)
                 {
                     LearningRate = _learningRate,
@@ -59,7 +60,7 @@ namespace Model
             double previousMse = 0, leastMse = double.MaxValue;
             while (!_stopTraining)
             {
-                double currentMse = learning.RunEpoch(inputs, outputs) / (samples.Count * _outputDimension);
+                double currentMse = 2 * learning.RunEpoch(inputs, outputs) / (samples.Count * _outputDimension);
                 if (currentMse < leastMse) leastMse = currentMse;
 
                 if (iteration > 0)
@@ -81,7 +82,18 @@ namespace Model
 
         public double Validate(IList<DataTuple> samples)
         {
-            return samples.Sum(o => AggregateError(o)) / (samples.Count * _outputDimension);
+            double total = 0;
+            foreach (var sample in samples)
+            {
+                double[] output = Estimate(sample);
+                for (int i = 0; i < _outputDimension; i++)
+                {
+                    double delta = output[i] - sample.Outputs[i];
+                    total += delta * delta;
+                }
+            }
+
+            return total / (samples.Count * _outputDimension);
         }
 
         public double[] Estimate(DataTuple sample)
@@ -91,30 +103,18 @@ namespace Model
             return _network.Compute(sample.Inputs);
         }
 
-        private double AggregateError(DataTuple sample)
-        {
-            var output = Estimate(sample);
-            double error = 0;
-            for (int i = 0; i < _outputDimension; i++)
-            {
-                error += Math.Pow(output[i] - sample.Outputs[i], 2);
-            }
-
-            return error;
-        }
-
         public void StopTrain()
         {
             _stopTraining = true;
         }
         
-       
         public override string ToString()
         {
             var builder = new StringBuilder(300);
             builder.AppendLine("Optimal Neural Network Parameters:");            
-            builder.AppendFormat("\tInput nodes - {0}, Output nodes - {1}, Hidden Layers - {2}, Least Training MSE: {3}", 
-                _network.InputsCount, _network.Output.Length, _network.Layers.Length - 1, LeastTrainingMse);
+            builder.AppendFormat("\tInput nodes - {0}, Output nodes - {1}, Hidden Layers - {2}[{4}], Least Training MSE: {3}", 
+                _network.InputsCount, _network.Output.Length, _network.Layers.Length - 1, LeastTrainingMse,
+                string.Join("-", _network.Layers.Select(o => o.Neurons.Length)));
             builder.AppendLine();
             for (int i = 0; i < _network.Layers.Length - 1; i++)
             {
