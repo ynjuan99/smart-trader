@@ -11,15 +11,15 @@ namespace Model
 {
     public class RegressionModel
     {                
-        private readonly double _sigmoidAlphaValue;
-        private readonly double _learningRate;
-        private readonly double _momentum;
-        private readonly int _maxIterations;
-        private ActivationNetwork _network;
-        private bool _stopTraining;
-        private int _inputDimension;
-        private int _outputDimension;
-        private readonly int _maxTry;
+        protected readonly double _sigmoidAlphaValue;
+        protected readonly double _learningRate;
+        protected readonly double _momentum;
+        protected readonly int _maxIterations;
+        protected ActivationNetwork _network;
+        protected bool _stopTraining;
+        protected int _inputDimension;
+        protected int _outputDimension;
+        protected readonly int _maxTry;
         public RegressionModel() : this(2, 0.1, 0.001, 10, 0.8)
         {
         }
@@ -80,7 +80,7 @@ namespace Model
             LeastTrainingMse = leastMse;
         }
 
-        public double Validate(IList<DataTuple> samples)
+        public virtual double Test(IList<DataTuple> samples)
         {
             double total = 0;
             foreach (var sample in samples)
@@ -114,7 +114,7 @@ namespace Model
             builder.AppendLine("Optimal Neural Network Parameters:");            
             builder.AppendFormat("\tInput nodes - {0}, Output nodes - {1}, Hidden Layers - {2}[{4}], Least Training MSE: {3}", 
                 _network.InputsCount, _network.Output.Length, _network.Layers.Length - 1, LeastTrainingMse,
-                string.Join("-", _network.Layers.Select(o => o.Neurons.Length)));
+                string.Join("-", _network.Layers.Take(_network.Layers.Length - 1).Select(o => o.Neurons.Length)));
             builder.AppendLine();
             for (int i = 0; i < _network.Layers.Length - 1; i++)
             {

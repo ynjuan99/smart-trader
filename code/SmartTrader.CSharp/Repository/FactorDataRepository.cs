@@ -11,11 +11,23 @@ namespace Repository
     public class FactorDataRepository
     {
         private const string ConnectionString = "Initial Catalog=SmartTrader;Data Source=localhost;Integrated Security=SSPI;";
-    
-        public static IList<DataTuple> GetFactorData(int year, string sector, params string[] outputColumns)
+
+        public static IList<DataTuple> GetFactorData(int sampling, string sector, int year, params string[] outputColumns)
+        {
+            string filter = string.Format("YEAR(Date) = {0} AND Sector = '{1}'", year, sector);            
+            return GetData(sampling, filter, outputColumns);
+        }
+        public static IList<DataTuple> GetFactorData(int sampling, string sector, DateTime start, DateTime end, params string[] outputColumns)
+        {
+            string filter = string.Format("Sector = '{0}' AND Date >= '{1:yyyy-MM-dd HH:mm:ss.fff}' AND Date < '{2:yyyy-MM-dd HH:mm:ss.fff}'",
+                sector, start, end.AddDays(1));
+            return GetData(sampling, filter, outputColumns);
+        }
+
+        private static IList<DataTuple> GetData(int samplePercentage, string filter, params string[] outputColumns)
         {
             #region Script
-            const string query = @"
+            const string sql = @"
 SELECT  Date
       , SecId
       , Sector
@@ -125,26 +137,39 @@ SELECT  Date
       , ISNULL(ISNULL(Price52WHigh, AVG(Price52WHigh) OVER ()), 0) AS Price52WHigh
       , ISNULL(ISNULL(Price52WLow, AVG(Price52WLow) OVER ()), 0) AS Price52WLow
       , ISNULL(ISNULL(PMOM20Advanced, AVG(PMOM20Advanced) OVER ()), 0) AS PMOM20Advanced
-FROM    dbo.tb_FactorScore TABLESAMPLE (33 PERCENT)
-WHERE   Sector = @sector
-        AND YEAR(Date) = @year
-";
+FROM    dbo.tb_FactorScore 
+";            
             #endregion
 
-            var result = new List<DataTuple>(13000);
+            var query = new StringBuilder(sql);
+            if (samplePercentage > 0 && samplePercentage < 100)
+            {
+                query.AppendFormat(" TABLESAMPLE ({0} PERCENT) ", samplePercentage);
+            }
+            query.Append(" WHERE 1 = 1");
+            
+            foreach (string item in outputColumns)
+            {
+                query.AppendFormat(" AND {0} IS NOT NULL", item);
+            }
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                query.AppendFormat(" AND {0} ", filter);
+            }
+
+            var result = new List<DataTuple>(15000);
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
-                using (var cmd = new SqlCommand(query, conn))
+                using (var cmd = new SqlCommand(query.ToString(), conn))
                 {
-                    cmd.Parameters.AddWithValue("@year", year);
-                    cmd.Parameters.AddWithValue("@sector", sector);
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                         {
                             var date = (DateTime)reader[0];
                             var sectorId = (int)reader[1];
+                            var sector = (string)reader[2];
                             //3: descriptive columns, 11: output columns
                             int width = reader.FieldCount - 3 - 11 + outputColumns.Length;
                             var inputs = new double[width];
@@ -167,6 +192,5 @@ WHERE   Sector = @sector
 
             return result;
         }
-
     }
 }
