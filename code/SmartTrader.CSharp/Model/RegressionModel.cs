@@ -45,7 +45,7 @@ namespace Model
             _outputDimension = samples[0].Outputs.Length;
 
             //2 hidden layers
-            _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension * 2, 6, _outputDimension);
+            _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension * 2, 7, _outputDimension);
             var learning = new BackPropagationLearning(_network)
                 {
                     LearningRate = _learningRate,
