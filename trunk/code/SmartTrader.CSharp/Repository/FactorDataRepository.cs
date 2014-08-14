@@ -137,6 +137,7 @@ SELECT  Date
       , ISNULL(ISNULL(Price52WHigh, AVG(Price52WHigh) OVER ()), 0) AS Price52WHigh
       , ISNULL(ISNULL(Price52WLow, AVG(Price52WLow) OVER ()), 0) AS Price52WLow
       , ISNULL(ISNULL(PMOM20Advanced, AVG(PMOM20Advanced) OVER ()), 0) AS PMOM20Advanced
+      , ISNULL(ISNULL(PMOM20Advanced_Normalized, AVG(PMOM20Advanced_Normalized) OVER ()), 0) AS PMOM20Advanced_Normalized
 FROM    dbo.tb_FactorScore 
 ";            
             #endregion
@@ -170,8 +171,8 @@ FROM    dbo.tb_FactorScore
                             var date = (DateTime)reader[0];
                             var sectorId = (int)reader[1];
                             var sector = (string)reader[2];
-                            //3: descriptive columns, 11: output columns
-                            int width = reader.FieldCount - 3 - 11 + outputColumns.Length;
+                            //3: descriptive columns, 12: output columns
+                            int width = reader.FieldCount - 3 - 12 + outputColumns.Length;
                             var inputs = new double[width];
                             for (int i = 0; i < width; i++)
                             {
