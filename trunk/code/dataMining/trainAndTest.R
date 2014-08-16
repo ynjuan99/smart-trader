@@ -95,7 +95,13 @@ trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
   results$rf = predict(model.rf, test.dataset, type="class")
   results$ada = predict(model.ada, test.dataset)
 #   results$rpart.prob = predict(model.rpart, test.dataset)
-  results$ksvm.prob = predict(model.ksvm, test.dataset, type="probabilities")
+  results$ksvm.prob = tryCatch(
+                  predict(model.ksvm, test.dataset, type="probabilities"),
+                      error = function(e) {
+                        print(paste("ksvm no probabilities"))
+                        return(NULL)
+                      })
+#   results$ksvm.prob = predict(model.ksvm, test.dataset, type="probabilities")
   results$nnet.prob = predict(model.nnet, test.dataset)
   results$rf.prob = predict(model.rf, test.dataset, type="vote")
   results$ada.prob = predict(model.ada, test.dataset, type="prob")
@@ -112,11 +118,19 @@ trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
   results$voted[results$voted==-1] = 0
 
   #probability votes
-  results$all.prob =  ( #results$rpart.prob.1 *0.25 + 
+  if (length(results$ksvm.prob.1) == 0) {  
+    results$all.prob =  ( #results$rpart.prob.1 *0.25 + 
+      #     results$ksvm.prob.1 *0.25 + 
+      results$nnet.prob *0.33 + 
+        results$rf.prob.1 *0.34+
+        results$ada.prob.2 *0.33) 
+  } else { #use the other 3 only
+    results$all.prob =  ( #results$rpart.prob.1 *0.25 + 
                          results$ksvm.prob.1 *0.25 + 
                          results$nnet.prob *0.25 + 
                         results$rf.prob.1 *0.25+
                          results$ada.prob.2 *0.25) 
+  }
   results$voted.prob = results$all.prob - 0.5
   results$voted.prob = results$voted.prob/abs(results$voted.prob)
   results$voted.prob[results$voted.prob==-1] = 0
