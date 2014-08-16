@@ -22,10 +22,15 @@ getMonthlyData <- function(sector, startDate, testDate, momEndDate) {
                          ")
   table(securities$SML)
   table(securities$SML, securities$GICS_SEC) 
-  secIds = securities[ (securities$SML == 'L' | securities$SML == 'M')
-#                       & str_trim(securities$GICS_SEC) == 'Financials', 
-                      & str_trim(securities$GICS_SEC) == sector, 
-                      'SecId']
+  if (sector == "All") {
+    secIds = securities[ (securities$SML == 'L' | securities$SML == 'M') , 
+                         'SecId']
+  } else {
+    secIds = securities[ (securities$SML == 'L' | securities$SML == 'M')
+  #                       & str_trim(securities$GICS_SEC) == 'Financials', 
+                        & str_trim(securities$GICS_SEC) == sector, 
+                        'SecId']
+  }
   #Using Financials Large and Mid <- 169
   ######################
   
