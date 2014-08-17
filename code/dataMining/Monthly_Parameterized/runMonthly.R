@@ -1,5 +1,5 @@
-source("R/getScoredDataMSSQL_specifyDates.R")
-source("R/otherModels_specify.R")
+source("Monthly_Parameterized/getScoredDataMSSQL_specifyDates.R")
+source("Monthly_Parameterized/otherModels_specify.R")
 
 runMonthly <- function(startDate, testDate, momEndDate) {
   sectors = 
