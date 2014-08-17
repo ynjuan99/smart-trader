@@ -33,6 +33,9 @@
     <Reference Include="AForge">
       <HintPath>lib\AForge.dll</HintPath>
     </Reference>
+    <Reference Include="AForge.Fuzzy">
+      <HintPath>lib\AForge.Fuzzy.dll</HintPath>
+    </Reference>
     <Reference Include="AForge.Neuro">
       <HintPath>lib\AForge.Neuro.dll</HintPath>
     </Reference>
@@ -52,6 +55,7 @@
     <Compile Include="DataContext.cs" />
     <Compile Include="NeuroEstimator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="FuzzyTrader.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
