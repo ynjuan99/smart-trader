@@ -1,0 +1,15 @@
+
+DJI	Dow Jones Index
+DJV	Dow Jones Volume
+S&P	Standard & Poor Index
+FTSE	Financial Times Stock Exchange Index
+FTV	Financial Times Volume
+STI	Straits Times Index
+STIV 	Straits Times Volume
+SGPRIME	Singapore prime bank rate
+UKPRIME	UK prime bank rate
+USPRIME	US prime bank rate
+USINF	US monthly inflation rate
+UKINF	UK monthly inflation rate
+SGINF	Singapore monthly inflation rate
+
