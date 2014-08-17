@@ -1,25 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using AForge.Neuro;
 using AForge.Neuro.Learning;
 
 namespace Model
 {
     public class NeuroEstimator
-    {                
-        private readonly double _sigmoidAlphaValue;
+    {
         private readonly double _learningRate;
-        private readonly double _momentum;
         private readonly int _maxIterations;
-        private ActivationNetwork _network;
-        private bool _stopTraining;
-        private int _inputDimension;
-        private int _outputDimension;
         private readonly int _maxTry;
+        private readonly double _momentum;
+        private readonly double _sigmoidAlphaValue;
+        private int _inputDimension;
+        private ActivationNetwork _network;
+        private int _outputDimension;
+        private bool _stopTraining;
+
         public NeuroEstimator() : this(2, 0.1, 0.001, 10, 0.8)
         {
         }
@@ -39,19 +37,21 @@ namespace Model
         }
 
         public double LeastTrainingMse { get; private set; }
+
         public void Train(Indices[] samples)
         {
             _inputDimension = samples[0].Inputs.Length;
             _outputDimension = samples[0].Outputs.Length;
 
-            _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension * 2, _outputDimension);            var learning = new BackPropagationLearning(_network)
+            _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension * 2, _outputDimension);
+            var learning = new BackPropagationLearning(_network)
             {
                 LearningRate = _learningRate,
                 Momentum = _momentum
             };
 
-            var inputs = samples.Select(o => o.Inputs).ToArray();
-            var outputs = samples.Select(o => o.Outputs).ToArray();
+            double[][] inputs = samples.Select(o => o.Inputs).ToArray();
+            double[][] outputs = samples.Select(o => o.Outputs).ToArray();
             int iteration = 0;
 
             int noChangeCount = 0;
@@ -81,7 +81,7 @@ namespace Model
         public double Test(Indices[] samples)
         {
             double total = 0;
-            foreach (var sample in samples)
+            foreach (Indices sample in samples)
             {
                 double[] output = Estimate(sample);
                 for (int i = 0; i < _outputDimension; i++)
@@ -116,10 +116,10 @@ namespace Model
             builder.AppendLine();
             for (int i = 0; i < _network.Layers.Length - 1; i++)
             {
-                var layer = _network.Layers[i];
+                Layer layer = _network.Layers[i];
                 for (int j = 0; j < layer.Neurons.Length; j++)
                 {
-                    var neuro = layer.Neurons[j];
+                    Neuron neuro = layer.Neurons[j];
                     builder.AppendFormat("\tLayer-Neuro[{0:D2},{1:D2}] weights - {2}", i + 1, j + 1,
                         string.Join(",", neuro.Weights.Select(o => o.ToString("F3"))));
                     builder.AppendLine();
@@ -128,10 +128,10 @@ namespace Model
 
             for (int i = 0; i < _network.Layers.Length - 1; i++)
             {
-                var layer = _network.Layers[i];
+                Layer layer = _network.Layers[i];
                 for (int j = 0; j < layer.Neurons.Length; j++)
                 {
-                    var neuro = layer.Neurons[j];
+                    Neuron neuro = layer.Neurons[j];
                     builder.AppendFormat("\tOutput-Layer-Neuro[{0:D2},{1:D2}] weights - {2}", i + 1, j + 1,
                         string.Join(",", neuro.Weights.Select(o => o.ToString("F3"))));
                     builder.AppendLine();

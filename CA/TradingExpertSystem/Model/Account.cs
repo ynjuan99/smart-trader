@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace Model
@@ -16,6 +15,7 @@ namespace Model
 
         private bool _alreadySetBalance;
         private double _currentBalance;
+
         public Account(double sgd, double ukp, double usd)
         {
             _accounts[Currency.SGD] = sgd;
@@ -36,19 +36,19 @@ namespace Model
                 return _currentBalance;
             }
         }
-        
+
         public double Transact(Indices indices, params Trade[] trades)
         {
-            foreach (var currency in _accounts.Keys)
+            foreach (Currency currency in _accounts.Keys)
             {
                 UpdateInterest(currency, indices.GetInterestRate(currency));
             }
-            
-            foreach (var trade in trades)
+
+            foreach (Trade trade in trades)
             {
                 Trade(indices, trade);
             }
-            
+
             _currentBalance = _accounts.Sum(o => o.Value * indices.GetExchangeRateToUSD(o.Key));
             _alreadySetBalance = true;
 
@@ -65,6 +65,6 @@ namespace Model
             double actual = Math.Min(Math.Max(0, trade.Amount), _accounts[trade.From]);
             _accounts[trade.From] -= actual;
             _accounts[trade.To] += actual * indices.GetExchangeRateToUSD(trade.From) / indices.GetExchangeRateToUSD(trade.To);
-        }       
+        }
     }
 }

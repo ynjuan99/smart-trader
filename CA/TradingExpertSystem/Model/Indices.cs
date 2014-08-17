@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 
 namespace Model
 {
@@ -45,7 +44,7 @@ namespace Model
                     throw new ArgumentOutOfRangeException("currency");
             }
         }
-        
+
         public double GetInterestRate(Currency currency)
         {
             switch (currency)
