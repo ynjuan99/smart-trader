@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -42,6 +43,9 @@
     <Reference Include="AForge.Neuro">
       <HintPath>lib\AForge.Neuro.dll</HintPath>
     </Reference>
+    <Reference Include="encog-core-cs">
+      <HintPath>lib\encog-core-cs.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -51,6 +55,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IModel.cs" />
+    <Compile Include="PnnModel.cs" />
     <Compile Include="ClassficationModel.cs" />
     <Compile Include="RegressionModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
