@@ -9,7 +9,7 @@ using Repository;
 
 namespace Model
 {
-    public class RegressionModel
+    public class RegressionModel : IModel
     {                
         protected readonly double _sigmoidAlphaValue;
         protected readonly double _learningRate;
