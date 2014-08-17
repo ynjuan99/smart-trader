@@ -36,13 +36,13 @@ namespace Model
             string[] lines = File.ReadAllLines(path);
             int rowCount = lines.Length;
             var raw = new Indices[rowCount - 1];
+            Indices previous = null;
             for (int i = 1; i < rowCount; i++)
             {
                 string[] line = lines[i].Split(',');
                 DateTime date = DateTime.ParseExact(line[0], @"d-MMM-yy", null);
                 var inputs = new double[InputCount];
                 var outputs = new double[OutputCount];
-
                 int k1 = 0, k2 = 0;
                 for (int j = 1; j < line.Length; j++)
                 {
@@ -57,12 +57,19 @@ namespace Model
                         outputs[k2++] = value;
                     }
                 }
-                raw[i - 1] = new Indices(date, inputs, outputs);
+
+                var current = new Indices(date, inputs, outputs);
+                if (previous != null)
+                {
+                    previous.Next = current;
+                }
+                previous = current;
+                raw[i - 1] = current;
             }
 
             var cutoff = new DateTime(1996, 4, 1);
-            TrainingIndices = raw.Where(o => o.Date < cutoff).ToArray();
-            TestingIndices = raw.Where(o => o.Date >= cutoff).ToArray();
+            TrainingIndices = raw.Where(o => o.Date < cutoff && o.Next != null).ToArray();
+            TestingIndices = raw.Where(o => o.Date >= cutoff && o.Next != null).ToArray();
         }
 
         #endregion

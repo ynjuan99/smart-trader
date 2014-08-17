@@ -51,7 +51,7 @@ namespace Model
             };
 
             double[][] inputs = samples.Select(o => o.Inputs).ToArray();
-            double[][] outputs = samples.Select(o => o.Outputs).ToArray();
+            double[][] outputs = samples.Select(o => o.Next.Outputs).ToArray();
             int iteration = 0;
 
             int noChangeCount = 0;
@@ -86,7 +86,7 @@ namespace Model
                 double[] output = Estimate(sample);
                 for (int i = 0; i < _outputDimension; i++)
                 {
-                    double delta = output[i] - sample.Outputs[i];
+                    double delta = output[i] - sample.Next.Outputs[i];
                     total += delta * delta;
                 }
             }

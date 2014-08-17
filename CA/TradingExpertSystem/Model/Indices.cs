@@ -30,6 +30,8 @@ namespace Model
             get { return _outputs; }
         }
 
+        public Indices Next { get; set; }
+
         public double GetExchangeRateToUSD(Currency currency)
         {
             switch (currency)
