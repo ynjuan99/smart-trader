@@ -3,17 +3,17 @@ source("Monthly_Parameterized/otherModels_specify.R")
 
 runMonthly <- function(startDate, testDate, momEndDate) {
   sectors = 
-    c("All", "Health Care", "Information Technology", 
+    c("Health Care", "Information Technology", 
              "Consumer Discretionary", "Financials",                
               "Telecommunication Services", "Utilities",                 
               "Industrials", "Energy", "Materials", "Consumer Staples") 
-  #
+  #"All", 
   for (sector in sectors) {
     label = paste0("test_", sector, "_", testDate)
     
     dataset = getMonthlyData(sector, startDate, testDate, momEndDate)
     results = runTrainAndTest(dataset, testDate)
-    write.csv(results, paste0("R/results/results.", label, ".csv"))
+    write.csv(results, paste0("../../results/results.", label, ".csv"))
     errorMatrix = getErrorMatrix(results)
   
     getColumns = c("actual", "ksvm", "nnet", "rf", "ada", "voted", "voted.prob")
@@ -22,7 +22,7 @@ runMonthly <- function(startDate, testDate, momEndDate) {
       print(paste(colprint, "mean:", val))
       errorMatrix[5, colprint] = val 
     }
-    write.csv(errorMatrix, paste0("R/results/errorMatrix.", label, ".csv"))
+    write.csv(errorMatrix, paste0("../../results/errorMatrix.", label, ".csv"))
   }
 }
 

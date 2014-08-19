@@ -2,7 +2,7 @@ library(rpart)
 source("commonUtility.R")
 addLibrary()
 
-source("R/trainAndTest.R")
+source("trainAndTest.R")
 
 # model.dataset = dataset
 runTrainAndTest <- function(model.dataset, testDate) {
