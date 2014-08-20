@@ -39,9 +39,9 @@ getMonthlyData <- function(sector, startDate, testDate, momEndDate) {
              SELECT *
              FROM [S&P].[dbo].[tb_FactorScore] 
              WHERE [DATE] >= '", startDate, "' AND [DATE] < '", momEndDate,
+             "' AND SECTOR = '", sector, 
              "' AND SecId in (", paste(secIds,collapse=","), 
              ") ORDER by [Date], SecId")) #nov and dec 2008
-#AND SECTOR = 'Financials' 
 
   #use price momentum instead
   priceMom <- sqlQuery(channel, paste0(" 
@@ -65,7 +65,7 @@ getMonthlyData <- function(sector, startDate, testDate, momEndDate) {
   col.input = colnames(data)
 #   summary(data)
   
-  #columns that have less than 20% filled.
+  #columns that have more than 20% not filled.
   columnsToRemove = colnames(data)[apply(data, 2, function(x) sum(is.na(x))) > 0.2 * nrow(data)]
   for (i in 4:ncol(data)) {
     if (length(unique(data[,i])) < 4)
