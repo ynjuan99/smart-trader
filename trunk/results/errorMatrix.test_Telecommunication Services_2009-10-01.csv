@@ -1,6 +1,6 @@
-"","Actual","Predicted","actual","ksvm","nnet","rf","ada","voted","voted.prob"
-"1","0","0",14,14,14,14,14,14,14
-"2","1","0",0,2,2,2,2,2,2
-"3","0","1",0,0,14,0,0,14,14
-"4","1","1",2,0,2,0,0,2,2
-"5",NA,NA,1.4746189,NA,NA,NA,NA,NA,NA
+"","Actual","Predicted","actual","ksvm","nnet","rf","ada","voted","voted.prob","PCA_ksvm","PCA_nnet","PCA_rf","PCA_ada","PCA_voted","PCA_voted.prob"
+"1","0","0",6,6,6,6,6,6,6,6,6,6,6,6,6
+"2","1","0",0,2,2,2,2,2,2,2,2,2,2,2,2
+"3","0","1",0,0,6,0,0,6,6,0,6,0,0,6,6
+"4","1","1",2,0,2,0,0,2,2,0,2,0,0,2,2
+"5",NA,NA,0.7567942085,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
