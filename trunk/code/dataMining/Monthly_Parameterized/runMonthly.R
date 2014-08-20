@@ -3,20 +3,22 @@ source("Monthly_Parameterized/otherModels_specify.R")
 
 runMonthly <- function(startDate, testDate, momEndDate) {
   sectors = 
-    c("Health Care", "Information Technology", 
+    c("All", "Health Care", "Information Technology", 
              "Consumer Discretionary", "Financials",                
               "Telecommunication Services", "Utilities",                 
               "Industrials", "Energy", "Materials", "Consumer Staples") 
-  #"All", 
+  # 
   for (sector in sectors) {
     label = paste0("test_", sector, "_", testDate)
     
     dataset = getMonthlyData(sector, startDate, testDate, momEndDate)
     results = runTrainAndTest(dataset, testDate)
     write.csv(results, paste0("../../results/results.", label, ".csv"))
+    results$actual = results$bin.diff20
     errorMatrix = getErrorMatrix(results)
-  
-    getColumns = c("actual", "ksvm", "nnet", "rf", "ada", "voted", "voted.prob")
+    
+    getColumns = c("ksvm", "nnet", "rf", "ada", "voted", "voted.prob")
+    getColumns = c("actual", getColumns, paste0("PCA_", getColumns))
     for (colprint in getColumns) {
       val = mean(results[results[, colprint] == 1, "diff20"])
       print(paste(colprint, "mean:", val))
@@ -91,7 +93,7 @@ runMonthly(startDate, testDate, momEndDate)
 
 startDate = '2009-11-01'
 testDate = '2009-12-01'
-momEndDate = '2010-01-10'
+momEndDate = '2010-01-10' #<- got data?? #think rows shift may be more than 20? cos no data
 runMonthly(startDate, testDate, momEndDate)
 
 # #2010 ########################################################

@@ -12,9 +12,9 @@ library(rpart.plot)
 STATIC_SEED=42
 
 # model.dataset = dataset.train
-# test.dataset = dataset.test
+# test.dataset.withoutTarget = dataset.test
 
-trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
+trainAndTest <- function(model.dataset, test.dataset.withoutTarget, col.target, col.input) {
   set.seed(STATIC_SEED)
   
   # Decision Tree 
@@ -86,25 +86,23 @@ trainAndTest <- function(model.dataset, test.dataset, col.target, col.input) {
        
   #Testing
   results = list()
-  results$actual = test.dataset[,col.target]
-  test.dataset[,col.target] = NULL
 
-#   results$rpart = predict(model.rpart, test.dataset, type="class")
-  results$ksvm = predict(model.ksvm, test.dataset) #cannot put class
-  results$nnet = predict(model.nnet, test.dataset, type="class")
-  results$rf = predict(model.rf, test.dataset, type="class")
-  results$ada = predict(model.ada, test.dataset)
-#   results$rpart.prob = predict(model.rpart, test.dataset)
+#   results$rpart = predict(model.rpart, test.dataset.withoutTarget, type="class")
+  results$ksvm = predict(model.ksvm, test.dataset.withoutTarget) #cannot put class
+  results$nnet = predict(model.nnet, test.dataset.withoutTarget, type="class")
+  results$rf = predict(model.rf, test.dataset.withoutTarget, type="class")
+  results$ada = predict(model.ada, test.dataset.withoutTarget)
+#   results$rpart.prob = predict(model.rpart, test.dataset.withoutTarget)
   results$ksvm.prob = tryCatch(
-                  predict(model.ksvm, test.dataset, type="probabilities"),
+                  predict(model.ksvm, test.dataset.withoutTarget, type="probabilities"),
                       error = function(e) {
                         print(paste("ksvm no probabilities"))
                         return(NULL)
                       })
-#   results$ksvm.prob = predict(model.ksvm, test.dataset, type="probabilities")
-  results$nnet.prob = predict(model.nnet, test.dataset)
-  results$rf.prob = predict(model.rf, test.dataset, type="vote")
-  results$ada.prob = predict(model.ada, test.dataset, type="prob")
+#   results$ksvm.prob = predict(model.ksvm, test.dataset.withoutTarget, type="probabilities")
+  results$nnet.prob = predict(model.nnet, test.dataset.withoutTarget)
+  results$rf.prob = predict(model.rf, test.dataset.withoutTarget, type="vote")
+  results$ada.prob = predict(model.ada, test.dataset.withoutTarget, type="prob")
   results = data.frame(results)
   #majority votes
   results$votes= #as.integer(results$rpart)+ #becomes 1s and 2s
