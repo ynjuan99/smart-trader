@@ -4,12 +4,22 @@ library(nnet)
 library(randomForest)
 
 library(quantmod)
-
+library(stringr)
 # By default, the file size limit is 5MB. It can be changed by
 # setting this option. Here we'll raise limit to 9MB.
 options(shiny.maxRequestSize = 9*1024^2)
 
-modelDir = "models"
+modelDir = "../models"
+testDataDir = "../../../data/dayData/"
+sectors = 
+  c("Financials", "All", "Health Care", "Information Technology", 
+    "Consumer Discretionary",                
+    "Telecommunication Services", "Utilities",                 
+    "Industrials", "Energy", "Materials", "Consumer Staples") 
+yearModel = c(rep("2008",2), rep("2009", 12))
+monthModel = as.character(c(11:12, 1:12))
+monthModel = str_pad(monthModel, 2, side="left", pad = 0)
+
 shinyServer(function(input, output, session) {
   datasetInput <- reactive({
     # input$file1 will be NULL initially. After the user selects
@@ -20,7 +30,7 @@ shinyServer(function(input, output, session) {
     inFile <- input$file1
     if (is.null(inFile))
 #       return(NULL)
-      filePath = paste0(modelDir, "/scoredData_Financials_2008-12-01.csv")
+      filePath = paste0(testDataDir, "scoredData_Financials_2008-12-01.csv")
     else
       filePath = inFile$datapath
     print(filePath)
@@ -49,17 +59,26 @@ shinyServer(function(input, output, session) {
     if (is.null(datasetInput())) {
       return(NULL)
     }
-    if(input$monthModel == 1) {
-      load(paste0(modelDir, "/model.ada_Financials_2008-11-01.Rdata"))     
-      load(paste0(modelDir, "/model.ksvm_Financials_2008-11-01.Rdata"))     
-      load(paste0(modelDir, "/model.nnet_Financials_2008-11-01.Rdata"))     
-      load(paste0(modelDir, "/model.rf_Financials_2008-11-01.Rdata"))     
+    if (is.null(input$sector) | is.null(input$monthYearModel)) {
+      updateSelectInput(session, "sector", value=1)
+      updateSelectInput(session, "monthYearModel", value=1)
     }
+    sectorMonthYear = paste0(sectors[as.integer(input$sector)], "_", 
+                             yearModel[as.integer(input$monthYearModel)], "-", 
+                             monthModel[as.integer(input$monthYearModel)], "-01")
+    print(sectorMonthYear)
+    load(paste0(modelDir, "/model.ada_", sectorMonthYear, ".Rdata"))     
+    load(paste0(modelDir, "/model.ksvm_", sectorMonthYear, ".Rdata"))     
+    load(paste0(modelDir, "/model.nnet_", sectorMonthYear, ".Rdata"))      
+    load(paste0(modelDir, "/model.rf_", sectorMonthYear, ".Rdata"))     
+    
     #Testing
     results = list()
+    print("maybe the data does not work for this model. ")
     
     #   results$rpart = predict(model.rpart, test.dataset.withoutTarget, type="class")
     results$ksvm = predict(model.ksvm, datasetInput()) #cannot put class
+    print("still works.")
     results$nnet = predict(model.nnet, datasetInput(), type="class")
     results$rf = predict(model.rf, datasetInput(), type="class")
     results$ada = predict(model.ada, datasetInput())
@@ -85,7 +104,7 @@ shinyServer(function(input, output, session) {
     results$voted = results$voted/abs(results$voted)
     results$voted[is.na(results$voted)] = 0
     results$voted[results$voted==-1] = 0
-    
+
     #probability votes
     if (length(results$ksvm.prob.1) == 0) {  
       results$all.prob =  ( #results$rpart.prob.1 *0.25 + 
@@ -113,10 +132,11 @@ shinyServer(function(input, output, session) {
 #     print(resultsToShow$votes)
     orderDes = order(resultsToShow$votes, decreasing=TRUE)
     updateTextInput(session, 'symb', 
-                value=resultsToShow[orderDes[1], "BBTicker"])
+                value=str_trim(resultsToShow[orderDes[1], "BBTicker"]))
+    print(resultsToShow[orderDes, "BBTicker"])
     resultsToShow[orderDes,]
   })
-
+  
 })
 
 # # load("models/model.ada_Consumer Discretionary_2008-11-01.Rdata")
