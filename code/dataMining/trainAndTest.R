@@ -10,11 +10,12 @@ library(rattle)
 library(rpart.plot)
 
 STATIC_SEED=42
+modelsDir = "models/"
 
 # model.dataset = dataset.train
 # test.dataset.withoutTarget = dataset.test
 
-trainAndTest <- function(model.dataset, test.dataset.withoutTarget, col.target, col.input) {
+trainAndTest <- function(model.dataset, test.dataset.withoutTarget, col.target, col.input, label) {
   set.seed(STATIC_SEED)
   
   # Decision Tree 
@@ -33,7 +34,8 @@ trainAndTest <- function(model.dataset, test.dataset.withoutTarget, col.target, 
                      data=model.dataset,
                      kernel="rbfdot",
                      prob.model=TRUE)
-  
+  save(model.ksvm, file=paste0(modelsDir, "model.ksvm", label, ".Rdata"))
+
   #neutral net
   set.seed(STATIC_SEED)
 #using Sum of Squares Residuals to get best number for Hidden Layer Nodes
@@ -56,7 +58,8 @@ trainAndTest <- function(model.dataset, test.dataset.withoutTarget, col.target, 
   model.nnet <- nnet(as.formula(concatenate("as.factor(", concatenate(col.target,") ~ ."))),
                      data=model.dataset,
                      size=nohiddenNodes, skip=TRUE, MaxNWts=10000, trace=FALSE, maxit=100)
-  
+  save(model.nnet, file=paste0(modelsDir, "model.nnet", label, ".Rdata"))
+
   # Random Forest 
   set.seed(STATIC_SEED)
   model.rf <- randomForest(as.formula(concatenate("as.factor(", concatenate(col.target,") ~ ."))),
@@ -66,6 +69,7 @@ trainAndTest <- function(model.dataset, test.dataset.withoutTarget, col.target, 
                            importance=TRUE,
                            na.action=na.roughfix,
                            replace=FALSE)
+  save(model.rf, file=paste0(modelsDir, "model.rf", label, ".Rdata"))
 #   windows()
 #   #Plot the relative importance of the variables.
 #   varImpPlot(model.rf, main="Variable Importance of Random Forest")
@@ -79,6 +83,7 @@ trainAndTest <- function(model.dataset, test.dataset.withoutTarget, col.target, 
                                          minsplit=20,
                                          xval=10),
                    iter=100)
+  save(model.ada, file=paste0(modelsDir, "model.ada", label, ".Rdata"))
 #   windows()
 #   varplot(model.ada) #doesnt work, main="Variable Importance of Boost")
 #   windows()  

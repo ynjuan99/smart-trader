@@ -4,7 +4,7 @@ library(caret)
 source("trainAndTest.R")
 
 # testStartDate = '2009-01-01'
-runTrainAndTest <- function(dataset, testStartDate) {
+runTrainAndTest <- function(dataset, testStartDate, label) {
 col.input = colnames(dataset)[1:(ncol(dataset)-1)]
 col.input = col.input[-c(2:3)]
 
@@ -26,10 +26,11 @@ col.target = "bin.diff20"
 dataset.train = dataset.train[ , c(col.input, col.target)]
 dataset.test = dataset.test[ , col.input]
 
-results = trainAndTest(dataset.train, dataset.test, col.target, col.input)
+results = trainAndTest(dataset.train, dataset.test, col.target, col.input, label)
 
 #pca 
-prinComs = prcomp(dataset.train[ , col.input[-1]]) #, scale. = TRUE)
+data.train.omitNAs = na.omit(dataset.train)
+prinComs = prcomp(data.train.omitNAs[ , col.input[-1]]) #, scale. = TRUE)
 cumulativeProp = summary(prinComs)$importance[3,]
 #get num of Principal Components to reach 90%
 numPcs = length(cumulativeProp[cumulativeProp<0.9]) + 1 
@@ -45,7 +46,8 @@ testPCA <- predict(preProc, dataset.test[ , col.input[-1]])
 testPCA <- cbind(dataset.test[,col.input[1]], testPCA)
 colnames(testPCA) = c(col.inputPCA)
 
-resultsPCA = trainAndTest(trainPCA, testPCA, col.target, col.inputPCA)
+resultsPCA = trainAndTest(trainPCA, testPCA, col.target, 
+                          col.inputPCA, paste0("PCA_", label))
 colnames(resultsPCA) = paste0("PCA_", colnames(resultsPCA))
 
 actualResults = cbind(actualResults, results, resultsPCA)

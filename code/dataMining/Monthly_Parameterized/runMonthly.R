@@ -10,9 +10,10 @@ runMonthly <- function(startDate, testDate, momEndDate) {
   # 
   for (sector in sectors) {
     label = paste0("test_", sector, "_", testDate)
+    modelLabel = paste0("_", sector, "_", startDate)
     
     dataset = getMonthlyData(sector, startDate, testDate, momEndDate)
-    results = runTrainAndTest(dataset, testDate)
+    results = runTrainAndTest(dataset, testDate, modelLabel)
     write.csv(results, paste0("../../results/results.", label, ".csv"))
     results$actual = results$bin.diff20
     errorMatrix = getErrorMatrix(results)

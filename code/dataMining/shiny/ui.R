@@ -1,7 +1,23 @@
 shinyUI(fluidPage(
-  titlePanel("Uploading Files"),
+  titlePanel("SmartTrader"),
   sidebarLayout(
     sidebarPanel(
+      helpText("Select a stock to examine. 
+        Information will be collected from yahoo finance."),
+      
+      textInput("symb", "Symbol", "SPY"),
+      
+      dateRangeInput("dates", 
+                     "Date range",
+                     start = "2008-11-01", 
+                     end = "2009-03-01"
+#                        as.character(Sys.Date())
+                      ),
+      
+      actionButton("get", "Get Stock"),
+      
+      br(),
+      br(),
       fileInput('file1', 'Choose file to upload',
                 accept = c(
                   'text/csv',
@@ -19,12 +35,10 @@ shinyUI(fluidPage(
                                 "Mar2009" = 5), selected = 1)
     ),
     mainPanel(
+      plotOutput("plot"),
+      br(),
       h3("Predicted to Buy: "),
-      tableOutput('ada')#,
-#       tags$hr(),
-#       tableOutput('ksvm'),
-#       tags$hr(),
-#       tableOutput('rf')
+      tableOutput('contents')
     )
   )
 ))
