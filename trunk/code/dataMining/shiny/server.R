@@ -45,6 +45,33 @@ shinyServer(function(input, output, session) {
     data.test
   })
 
+  modelName <- reactive({
+    if (is.null(input$sector) | is.null(input$monthYearModel)) {
+      updateSelectInput(session, "sector", value=1)
+      updateSelectInput(session, "monthYearModel", value=1)
+    }
+    paste0(sectors[as.integer(input$sector)], "_", 
+             yearModel[as.integer(input$monthYearModel)], "-", 
+             monthModel[as.integer(input$monthYearModel)], "-01")
+  })
+  
+  model.ada <- reactive({
+    load(paste0(modelDir, "/model.ada_", modelName(), ".Rdata"))    
+    model.ada
+  })
+  model.ksvm <- reactive({
+    load(paste0(modelDir, "/model.ksvm_", modelName(), ".Rdata"))
+    model.ksvm
+  })
+  model.nnet <- reactive({
+    load(paste0(modelDir, "/model.nnet_", modelName(), ".Rdata"))  
+    model.nnet
+  })
+  model.rf <- reactive({
+    load(paste0(modelDir, "/model.rf_", modelName(), ".Rdata"))  
+    model.rf
+  })
+
   output$plot <- renderPlot({
     data <- getSymbols(input$symb, src = "yahoo", 
                        from = input$dates[1],
@@ -59,40 +86,28 @@ shinyServer(function(input, output, session) {
     if (is.null(datasetInput())) {
       return(NULL)
     }
-    if (is.null(input$sector) | is.null(input$monthYearModel)) {
-      updateSelectInput(session, "sector", value=1)
-      updateSelectInput(session, "monthYearModel", value=1)
-    }
-    sectorMonthYear = paste0(sectors[as.integer(input$sector)], "_", 
-                             yearModel[as.integer(input$monthYearModel)], "-", 
-                             monthModel[as.integer(input$monthYearModel)], "-01")
-    print(sectorMonthYear)
-    load(paste0(modelDir, "/model.ada_", sectorMonthYear, ".Rdata"))     
-    load(paste0(modelDir, "/model.ksvm_", sectorMonthYear, ".Rdata"))     
-    load(paste0(modelDir, "/model.nnet_", sectorMonthYear, ".Rdata"))      
-    load(paste0(modelDir, "/model.rf_", sectorMonthYear, ".Rdata"))     
-    
+
     #Testing
     results = list()
     print("maybe the data does not work for this model. ")
     
     #   results$rpart = predict(model.rpart, test.dataset.withoutTarget, type="class")
-    results$ksvm = predict(model.ksvm, datasetInput()) #cannot put class
+    results$ksvm = predict(model.ksvm(), datasetInput()) #cannot put class
     print("still works.")
-    results$nnet = predict(model.nnet, datasetInput(), type="class")
-    results$rf = predict(model.rf, datasetInput(), type="class")
-    results$ada = predict(model.ada, datasetInput())
+    results$nnet = predict(model.nnet(), datasetInput(), type="class")
+    results$rf = predict(model.rf(), datasetInput(), type="class")
+    results$ada = predict(model.ada(), datasetInput())
     #   results$rpart.prob = predict(model.rpart, test.dataset.withoutTarget)
     results$ksvm.prob = tryCatch(
-      predict(model.ksvm, datasetInput(), type="probabilities"),
+      predict(model.ksvm(), datasetInput(), type="probabilities"),
       error = function(e) {
         print(paste("ksvm no probabilities"))
         return(NULL)
       })
     #   results$ksvm.prob = predict(model.ksvm, test.dataset.withoutTarget, type="probabilities")
-    results$nnet.prob = predict(model.nnet, datasetInput())
-    results$rf.prob = predict(model.rf, datasetInput(), type="vote")
-    results$ada.prob = predict(model.ada, datasetInput(), type="prob")
+    results$nnet.prob = predict(model.nnet(), datasetInput())
+    results$rf.prob = predict(model.rf(), datasetInput(), type="vote")
+    results$ada.prob = predict(model.ada(), datasetInput(), type="prob")
     results = data.frame(results)
     #majority votes
     results$votes= #as.integer(results$rpart)+ #becomes 1s and 2s
@@ -137,6 +152,13 @@ shinyServer(function(input, output, session) {
     resultsToShow[orderDes,]
   })
   
+  output$rfVarImp <- renderPlot({
+    varImpPlot(model.rf(), main="Variable Importance Plot")
+  })
+
+  output$adaVarImp <- renderPlot({
+    varplot(model.ada()) # , main="Ada's Variable Importance") does not change name
+  })
 })
 
 # # load("models/model.ada_Consumer Discretionary_2008-11-01.Rdata")

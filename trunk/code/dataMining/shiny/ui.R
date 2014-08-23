@@ -49,10 +49,21 @@ shinyUI(fluidPage(
                  selected = 1)
     ),
     mainPanel(
-      plotOutput("plot"),
-      br(),
-      h3("Predicted to Buy: "),
-      tableOutput('contents')
+      tabsetPanel(
+        tabPanel("Results" , 
+                  plotOutput("plot"),
+                  br(),
+                  h3("Predicted to Buy: "),
+                  tableOutput('contents')
+        ),
+        tabPanel("Variable Importance",
+                 h4("Random Forest :"),
+                 plotOutput("rfVarImp", height = "600px"),
+                 br(),
+                 h4("Ada :"),
+                 plotOutput("adaVarImp", height = "500px")
+        )
+      )
     )
   )
 ))
