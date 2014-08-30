@@ -121,17 +121,17 @@ namespace OptimizerModel
 
         private static double DenormalizeRate(double value)
         {
-            return DataContext.Denormalize(value, 200d, 2000d, 0.999d);
+            return DataContext.Denormalize(value, 200d, 2000d, 0.999);
         }
 
         private static double DenormalizeFactor(double value)
         {
-            return DataContext.Denormalize(value, 10d, 100d, 0.999d);
+            return DataContext.Denormalize(value, 10d, 100d, 0.999);
         }
 
         private static double DenormalizeTime(double value)
         {
-            return DataContext.Denormalize(value, 0d, 24d, 0.999d);
+            return DataContext.Denormalize(value, 0d, 24d, 0.999);
         }
 
         private class AdAssignmentFitnessFunc : IFitnessFunction
