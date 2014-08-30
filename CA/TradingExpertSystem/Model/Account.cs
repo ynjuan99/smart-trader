@@ -37,14 +37,14 @@ namespace Model
             }
         }
 
-        public double Transact(Indices indices, params Trade[] trades)
+        public double Transact(Indices indices, params Transaction[] transactions)
         {
             foreach (Currency currency in _accounts.Keys)
             {
-                UpdateInterest(currency, indices.GetInterestRate(currency));
+                UpdateInterest(currency, indices.GetDiscountedInterestRate(currency));
             }
 
-            foreach (Trade trade in trades)
+            foreach (Transaction trade in transactions)
             {
                 Trade(indices, trade);
             }
@@ -55,16 +55,16 @@ namespace Model
             return _currentBalance;
         }
 
-        private void UpdateInterest(Currency currency, double rate)
+        private void UpdateInterest(Currency currency, double interestRate)
         {
-            _accounts[currency] *= (1 + rate / 5200);
+            _accounts[currency] *= (1 + interestRate / 5200);
         }
 
-        private void Trade(Indices indices, Trade trade)
+        private void Trade(Indices indices, Transaction transaction)
         {
-            double actual = Math.Min(Math.Max(0, trade.Amount), _accounts[trade.From]);
-            _accounts[trade.From] -= actual;
-            _accounts[trade.To] += actual * indices.GetExchangeRateToUSD(trade.From) / indices.GetExchangeRateToUSD(trade.To);
+            double actual = Math.Min(Math.Max(0, transaction.Amount), _accounts[transaction.From]);
+            _accounts[transaction.From] -= actual;
+            _accounts[transaction.To] += actual * indices.GetExchangeRateToUSD(transaction.From) / indices.GetExchangeRateToUSD(transaction.To);
         }
     }
 }

@@ -47,16 +47,16 @@ namespace Model
             }
         }
 
-        public double GetInterestRate(Currency currency)
+        public double GetDiscountedInterestRate(Currency currency)
         {
             switch (currency)
             {
                 case Currency.SGD:
-                    return _inputs[7];
+                    return _inputs[7] - _inputs[10];
                 case Currency.UKP:
-                    return _inputs[8];
+                    return _inputs[8] - _inputs[11];
                 case Currency.USD:
-                    return _inputs[9];
+                    return _inputs[9] - _inputs[12];
                 default:
                     throw new ArgumentOutOfRangeException("currency");
             }

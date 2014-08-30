@@ -48,7 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Trade.cs" />
+    <Compile Include="Transaction.cs" />
     <Compile Include="Currency.cs" />
     <Compile Include="Account.cs" />
     <Compile Include="Indices.cs" />

@@ -19,7 +19,7 @@ namespace Model
 
             _engine = new InferenceSystem(rulebase, new CentroidDefuzzifier(1000));
             //todo
-            _engine.NewRule("r1", "IF ");
+            _engine.NewRule("Rule#01", "IF THEN");
         }
 
         public void Propose()
@@ -36,7 +36,7 @@ namespace Model
                 new FuzzySet("Medium", new TrapezoidalFunction(3, 6, 9, 12)),
                 new FuzzySet("High", new TrapezoidalFunction(9, 12, TrapezoidalFunction.EdgeType.Left))
             };
-            var variable = new LinguisticVariable("InterestuRate", 0, 20);
+            var variable = new LinguisticVariable("InterestRate", 0, 20);
             foreach (var item in set)
             {
                 variable.AddLabel(item);
