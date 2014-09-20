@@ -19,7 +19,7 @@ namespace Model
             int i = 0;
             foreach (var column in columns)
             {
-                var value = Convert.ToDouble(row[column.ColumnName]);                
+                var value = Convert.ToDouble(row[column.ColumnName]);
                 if (column.ColumnName.Equals("SG_D_forward_week_z"))
                 {
                     FutureOutputs[0] = value;
@@ -41,11 +41,11 @@ namespace Model
             _ukpMean = Convert.ToDouble(row["P_D_mean"]);
             _ukpStdev = Convert.ToDouble(row["P_D_stdev"]);
         }
-                
-        public double[] Inputs{ get; private set; }
+
+        public double[] Inputs { get; private set; }
         public double[] CurrentOutputs { get; private set; }
         //Z-scored
-        public double[] FutureOutputs{ get; set; }
+        public double[] FutureOutputs { get; set; }
 
         //with reference to USD        
         public double GetCurrentExchangeRate(Currency currency)

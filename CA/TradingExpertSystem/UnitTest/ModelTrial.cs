@@ -11,8 +11,8 @@ namespace UnitTest
         [TestMethod]
         public void TestNeuralEstimator()
         {
-            var path = @"D:\SmartTrader\SVN\CA\TradingExpertSystem\Data\FinancialData_normalized.csv";
-            DataContext.CreateContext(path);
+            const string connStr = @"Initial Catalog=Dummy;Data Source=localhost;Integrated Security=SSPI;";
+            DataContext.CreateContext(connStr);
             var model = new NeuroEstimator();
             model.Train(DataContext.Instance.TrainingIndices);
            
