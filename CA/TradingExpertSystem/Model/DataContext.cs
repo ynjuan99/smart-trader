@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Data;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 
@@ -6,11 +8,6 @@ namespace Model
 {
     public class DataContext
     {
-        #region Exposure
-
-        public const int InputCount = 13;
-        public const int OutputCount = 2;
-
         private static DataContext _instance;
 
         public static DataContext Instance
@@ -22,58 +19,36 @@ namespace Model
             }
         }
 
-        public static void CreateContext(string path)
+        public static void CreateContext(string connStr)
         {
-            _instance = new DataContext(path);
+            _instance = new DataContext(connStr);
         }
 
-        #endregion
-
-        #region Data
-
-        private DataContext(string path)
+        
+        private DataContext(string connectionString)
         {
-            string[] lines = File.ReadAllLines(path);
-            int rowCount = lines.Length;
-            var raw = new Indices[rowCount - 1];
-            Indices previous = null;
-            for (int i = 1; i < rowCount; i++)
+            const string query = @"
+WITH tp AS (SELECT AVG(P_D_forward_week) AS P_D_mean, STDEV(P_D_forward_week) AS P_D_stdev FROM workshop2A_processedData),
+tsg AS (SELECT AVG(SG_D_forward_week) AS SG_D_mean, STDEV(SG_D_forward_week) AS SG_D_stdev FROM workshop2A_processedData)
+select *, tp.P_D_mean, tp.P_D_stdev, tsg.SG_D_mean, tsg.SG_D_stdev 
+FROM workshop2A_processedData, tp, tsg 
+WHERE F1 > 4 and F1 < 606
+";
+            var table = new DataTable();
+            using (var conn = new SqlConnection(connectionString))
             {
-                string[] line = lines[i].Split(',');
-                DateTime date = DateTime.ParseExact(line[0], @"d-MMM-yy", null);
-                var inputs = new double[InputCount];
-                var outputs = new double[OutputCount];
-                int k1 = 0, k2 = 0;
-                for (int j = 1; j < line.Length; j++)
+                conn.Open();
+                using (var adatper = new SqlDataAdapter(query, conn))
                 {
-                    double value = Convert.ToDouble(line[j]);
-
-                    if (k1 < InputCount)
-                    {
-                        inputs[k1++] = value;
-                    }
-                    else
-                    {
-                        outputs[k2++] = value;
-                    }
+                    adatper.Fill(table);
                 }
-
-                var current = new Indices(date, inputs, outputs);
-                if (previous != null)
-                {
-                    previous.Next = current;
-                }
-                previous = current;
-                raw[i - 1] = current;
             }
-
+            
             var cutoff = new DateTime(1996, 4, 1);
-            TrainingIndices = raw.Where(o => o.Date < cutoff && o.Next != null).ToArray();
-            TestingIndices = raw.Where(o => o.Date >= cutoff && o.Next != null).ToArray();
+            TrainingIndices = table.Rows.Cast<DataRow>().Where(o => o.Field<DateTime>("date") < cutoff).Select(o => new Indices(o)).ToArray();
+            TestingIndices = table.Rows.Cast<DataRow>().Where(o => o.Field<DateTime>("date") >= cutoff).Select(o => new Indices(o)).ToArray();
         }
-
-        #endregion
-
+        
         public Indices[] TrainingIndices { get; private set; }
         public Indices[] TestingIndices { get; private set; }
     }

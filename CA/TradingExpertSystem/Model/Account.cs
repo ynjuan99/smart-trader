@@ -41,7 +41,7 @@ namespace Model
         {
             foreach (Currency currency in _accounts.Keys)
             {
-                UpdateInterest(currency, indices.GetDiscountedInterestRate(currency));
+                UpdateInterest(currency, indices.GetCurrentEffectiveInterestRate(currency));
             }
 
             foreach (Transaction trade in transactions)
@@ -49,7 +49,7 @@ namespace Model
                 Trade(indices, trade);
             }
 
-            _currentBalance = _accounts.Sum(o => o.Value * indices.GetExchangeRateToUSD(o.Key));
+            _currentBalance = _accounts.Sum(o => o.Value * indices.GetCurrentExchangeRate(o.Key));
             _alreadySetBalance = true;
 
             return _currentBalance;
@@ -64,7 +64,7 @@ namespace Model
         {
             double actual = Math.Min(Math.Max(0, transaction.Amount), _accounts[transaction.From]);
             _accounts[transaction.From] -= actual;
-            _accounts[transaction.To] += actual * indices.GetExchangeRateToUSD(transaction.From) / indices.GetExchangeRateToUSD(transaction.To);
+            _accounts[transaction.To] += actual * indices.GetCurrentExchangeRate(transaction.From) / indices.GetCurrentExchangeRate(transaction.To);
         }
     }
 }

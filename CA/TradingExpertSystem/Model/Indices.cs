@@ -1,45 +1,61 @@
 ﻿using System;
+using System.Data;
+using System.Linq;
 
 namespace Model
 {
     public class Indices
     {
-        private readonly DateTime _date;
-        private readonly double[] _inputs;
-        private readonly double[] _outputs;
+        private readonly DataRow _row;
+        private readonly double _ukpMean, _ukpStdev, _sgdMean, _sgdStdev;
 
-        public Indices(DateTime date, double[] inputs, double[] outputs)
+        public Indices(DataRow row)
         {
-            _date = date;
-            _inputs = inputs;
-            _outputs = outputs;
+            _row = row;
+            var columns = _row.Table.Columns.Cast<DataColumn>().Where(o => o.ColumnName.EndsWith("_z", StringComparison.OrdinalIgnoreCase)).ToArray();
+            Inputs = new double[columns.Length - 2];
+            FutureOutputs = new double[2];
+            CurrentOutputs = new double[2];
+            int i = 0;
+            foreach (var column in columns)
+            {
+                var value = Convert.ToDouble(row[column.ColumnName]);                
+                if (column.ColumnName.Equals("SG_D_forward_week_z"))
+                {
+                    FutureOutputs[0] = value;
+                }
+                else if (column.ColumnName.Equals("P_D_forward_week_z"))
+                {
+                    FutureOutputs[1] = value;
+                }
+                else
+                {
+                    Inputs[i++] = value;
+                }
+            }
+            CurrentOutputs[0] = Convert.ToDouble(row["SG_D"]);
+            CurrentOutputs[1] = Convert.ToDouble(row["P_D"]);
+
+            _sgdMean = Convert.ToDouble(row["SG_D_mean"]);
+            _sgdStdev = Convert.ToDouble(row["SG_D_stdev"]);
+            _ukpMean = Convert.ToDouble(row["P_D_mean"]);
+            _ukpStdev = Convert.ToDouble(row["P_D_stdev"]);
         }
+                
+        public double[] Inputs{ get; private set; }
+        public double[] CurrentOutputs { get; private set; }
+        //Z-scored
+        public double[] FutureOutputs{ get; set; }
 
-        public DateTime Date
-        {
-            get { return _date; }
-        }
-
-        public double[] Inputs
-        {
-            get { return _inputs; }
-        }
-
-        public double[] Outputs
-        {
-            get { return _outputs; }
-        }
-
-        public Indices Next { get; set; }
-
-        public double GetExchangeRateToUSD(Currency currency)
+        //with reference to USD        
+        public double GetCurrentExchangeRate(Currency currency)
         {
             switch (currency)
             {
                 case Currency.SGD:
-                    return _outputs[0];
+                    return CurrentOutputs[0];
                 case Currency.UKP:
-                    return _outputs[1];
+                    return CurrentOutputs[1];
                 case Currency.USD:
                     return 1d;
                 default:
@@ -47,16 +63,31 @@ namespace Model
             }
         }
 
-        public double GetDiscountedInterestRate(Currency currency)
+        public double GetFutureExchangeRate(Currency currency)
         {
             switch (currency)
             {
                 case Currency.SGD:
-                    return _inputs[7] - _inputs[10];
+                    return FutureOutputs[0] * _sgdStdev + _sgdMean;
                 case Currency.UKP:
-                    return _inputs[8] - _inputs[11];
+                    return FutureOutputs[1] * _ukpStdev + _ukpMean;
                 case Currency.USD:
-                    return _inputs[9] - _inputs[12];
+                    return 1d;
+                default:
+                    throw new ArgumentOutOfRangeException("currency");
+            }
+        }
+
+        public double GetCurrentEffectiveInterestRate(Currency currency)
+        {
+            switch (currency)
+            {
+                case Currency.SGD:
+                    return Convert.ToDouble(_row["SGPRIME_weekly"]) - Convert.ToDouble(_row["SGINF_weekly"]);
+                case Currency.UKP:
+                    return Convert.ToDouble(_row["UKPRIME_weekly"]) - Convert.ToDouble(_row["UKINF_weekly"]);
+                case Currency.USD:
+                    return Convert.ToDouble(_row["USPRIME_weekly"]) - Convert.ToDouble(_row["USINF_weekly"]);
                 default:
                     throw new ArgumentOutOfRangeException("currency");
             }

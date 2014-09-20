@@ -41,7 +41,7 @@ namespace Model
         public void Train(Indices[] samples)
         {
             _inputDimension = samples[0].Inputs.Length;
-            _outputDimension = samples[0].Outputs.Length;
+            _outputDimension = samples[0].FutureOutputs.Length;
 
             _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension * 2, _outputDimension);
             var learning = new BackPropagationLearning(_network)
@@ -51,7 +51,7 @@ namespace Model
             };
 
             double[][] inputs = samples.Select(o => o.Inputs).ToArray();
-            double[][] outputs = samples.Select(o => o.Next.Outputs).ToArray();
+            double[][] outputs = samples.Select(o => o.FutureOutputs).ToArray();
             int iteration = 0;
 
             int noChangeCount = 0;
@@ -86,7 +86,7 @@ namespace Model
                 double[] output = Estimate(sample);
                 for (int i = 0; i < _outputDimension; i++)
                 {
-                    double delta = output[i] - sample.Next.Outputs[i];
+                    double delta = output[i] - sample.FutureOutputs[i];
                     total += delta * delta;
                 }
             }
