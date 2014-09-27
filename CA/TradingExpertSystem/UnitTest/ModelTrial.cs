@@ -49,20 +49,25 @@ namespace UnitTest
                 //Trace.WriteLine(model);
 
                 //Open account
-                var account = new Account(1000, 1000, 1000, testIndices[0].GetCurrentExchangeRate(Currency.SGD), testIndices[0].GetCurrentExchangeRate(Currency.UKP));
+                var account = new Account(10000, 10000, 10000, testIndices[0].GetCurrentExchangeRate(Currency.SGD), testIndices[0].GetCurrentExchangeRate(Currency.UKP));
 
                 //Build trader
                 var trader = new FuzzyTrader(DataContext.Instance.Rules);
 
                 //Start trading
-                foreach (var indices in testIndices)
+                //Initial balance
+                Trace.WriteLine(String.Format("{0:yyyy-MM-dd}: {1}", testIndices[0].Date, account));
+                for (int i = 1; i < testIndices.Length; i++)
                 {
+                    var indices = testIndices[i];
                     var proposals = trader.Propose(indices);
                     if (proposals.Count > 0)
                     {
-                        account.Transact(indices, proposals);
-                        Trace.WriteLine(String.Format("{0:yyyy-MM-dd}: {1}", indices.Date, account));
+                        account.Transact(indices, proposals);                        
                     }
+
+                    //New balance
+                    Trace.WriteLine(String.Format("{0:yyyy-MM-dd}: {1}", indices.Date, account));
                 }                
             }
             catch (Exception)

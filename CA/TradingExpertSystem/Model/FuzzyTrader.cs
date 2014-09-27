@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -47,13 +48,17 @@ namespace Model
                 {
                     amount = _engine.Evaluate("TradeStrategy");
                 }
-                catch
+                catch (Exception ex)
                 {
+                    if (!ex.Message.Contains("All memberships are zero."))
+                    {
+                        Trace.TraceError(ex.Message);
+                    }
                     amount = 0;
                 }
                 
                 float absAmount = Math.Abs(amount);
-                if (absAmount >= 10)
+                if (absAmount >= 5)
                 {                    
                     var currency = DataContext.CurrencyMap[country];
                     if (amount > 0) //buy USD

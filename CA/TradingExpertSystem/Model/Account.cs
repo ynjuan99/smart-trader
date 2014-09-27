@@ -36,14 +36,11 @@ namespace Model
 
         public double Transact(Indices indices, IEnumerable<Transaction> transactions)
         {
-            foreach (Currency currency in _accounts.Keys.ToArray())
+            var interest = UpdateInterest(indices);
+            var exchange = Trade(indices, transactions);
+            foreach (var key in _accounts.Keys.ToArray())
             {
-                UpdateInterest(currency, indices.GetCurrentInterestRate(currency));
-            }
-
-            foreach (Transaction transaction in transactions)
-            {
-                Trade(indices, transaction);
+                _accounts[key] += interest[key] + exchange[key];
             }
 
             _currentBalance = _accounts.Sum(o => o.Value * indices.GetCurrentExchangeRate(o.Key));          
@@ -51,16 +48,35 @@ namespace Model
             return _currentBalance;
         }
 
-        private void UpdateInterest(Currency currency, double interestRate)
+        private Dictionary<Currency, double> UpdateInterest(Indices indices)
         {
-            _accounts[currency] *= (1 + interestRate / 100);
+            var delta = new Dictionary<Currency, double>();
+            foreach (Currency currency in _accounts.Keys)
+            {
+                var interestRate = indices.GetCurrentInterestRate(currency);
+                delta.Add(currency, _accounts[currency] * interestRate / 100);
+            }
+
+            return delta;
         }
 
-        private void Trade(Indices indices, Transaction transaction)
+        private Dictionary<Currency, double> Trade(Indices indices, IEnumerable<Transaction> transactions)
         {
-            double quantity = transaction.Percentage * _accounts[transaction.From] / 100;            
-            _accounts[transaction.From] -= quantity * (1 + DataContext.CostPerTransaction);
-            _accounts[transaction.To] += quantity * indices.GetCurrentExchangeRate(transaction.From) / indices.GetCurrentExchangeRate(transaction.To);
+            var delta = new Dictionary<Currency, double>
+            {
+                { Currency.SGD, 0 },
+                { Currency.UKP, 0 },
+                { Currency.USD, 0 }
+            };
+
+            foreach (Transaction transaction in transactions)
+            {
+                double quantity = transaction.Percentage * _accounts[transaction.From] / 100;
+                delta[transaction.From] -= quantity * (1 + DataContext.CostPerTransaction);
+                delta[transaction.To] += quantity * indices.GetCurrentExchangeRate(transaction.From) / indices.GetCurrentExchangeRate(transaction.To);
+            }
+
+            return delta;
         }
 
         public override string ToString()
