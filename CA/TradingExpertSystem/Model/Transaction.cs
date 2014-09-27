@@ -2,15 +2,15 @@
 {
     public struct Transaction
     {
-        public double Amount;
+        public double Percentage;
         public Currency From;
         public Currency To;
 
-        public Transaction(Currency from, Currency to, double amount)
+        public Transaction(Currency from, Currency to, double percentage)
         {
             From = from;
             To = to;
-            Amount = amount;
+            Percentage = percentage;
         }
     }
 }

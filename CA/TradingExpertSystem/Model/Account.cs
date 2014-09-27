@@ -1,26 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Model
 {
     public class Account
     {
-        private readonly Dictionary<Currency, double> _accounts = new Dictionary<Currency, double>
-        {
-            { Currency.SGD, 0d },
-            { Currency.UKP, 0d },
-            { Currency.USD, 0d }
-        };
-
-        private bool _alreadySetBalance;
+        private readonly Dictionary<Currency, double> _accounts;
         private double _currentBalance;
 
-        public Account(double sgd, double ukp, double usd)
+        public Account(double sgd, double ukp, double usd, double usd2sgd, double usd2ukp)
         {
-            _accounts[Currency.SGD] = sgd;
-            _accounts[Currency.UKP] = ukp;
-            _accounts[Currency.USD] = usd;
+            _accounts = new Dictionary<Currency, double>
+            {
+                { Currency.SGD, sgd },
+                { Currency.UKP, ukp },
+                { Currency.USD, usd }
+            };
+            _currentBalance = usd + sgd * usd2sgd + ukp * usd2ukp;
         }
 
         public double this[Currency currency]
@@ -32,39 +30,43 @@ namespace Model
         {
             get
             {
-                if (!_alreadySetBalance) throw new InvalidOperationException("No transaction yet");
                 return _currentBalance;
             }
         }
 
-        public double Transact(Indices indices, params Transaction[] transactions)
+        public double Transact(Indices indices, IEnumerable<Transaction> transactions)
         {
-            foreach (Currency currency in _accounts.Keys)
+            foreach (Currency currency in _accounts.Keys.ToArray())
             {
-                UpdateInterest(currency, indices.GetCurrentEffectiveInterestRate(currency));
+                UpdateInterest(currency, indices.GetCurrentInterestRate(currency));
             }
 
-            foreach (Transaction trade in transactions)
+            foreach (Transaction transaction in transactions)
             {
-                Trade(indices, trade);
+                Trade(indices, transaction);
             }
 
-            _currentBalance = _accounts.Sum(o => o.Value * indices.GetCurrentExchangeRate(o.Key));
-            _alreadySetBalance = true;
+            _currentBalance = _accounts.Sum(o => o.Value * indices.GetCurrentExchangeRate(o.Key));          
 
             return _currentBalance;
         }
 
         private void UpdateInterest(Currency currency, double interestRate)
         {
-            _accounts[currency] *= (1 + interestRate / 5200);
+            _accounts[currency] *= (1 + interestRate / 100);
         }
 
         private void Trade(Indices indices, Transaction transaction)
         {
-            double actual = Math.Min(Math.Max(0, transaction.Amount), _accounts[transaction.From]);
-            _accounts[transaction.From] -= actual;
-            _accounts[transaction.To] += actual * indices.GetCurrentExchangeRate(transaction.From) / indices.GetCurrentExchangeRate(transaction.To);
+            double quantity = transaction.Percentage * _accounts[transaction.From] / 100;            
+            _accounts[transaction.From] -= quantity * (1 + DataContext.CostPerTransaction);
+            _accounts[transaction.To] += quantity * indices.GetCurrentExchangeRate(transaction.From) / indices.GetCurrentExchangeRate(transaction.To);
+        }
+
+        public override string ToString()
+        {
+            return string.Format("Current portfolio: SGD - {0:F2}, UKP - {1:F2}, USD - {2:F2}, total Balance in USD: {3:F2}", 
+                _accounts[Currency.SGD], _accounts[Currency.UKP], _accounts[Currency.USD], _currentBalance);
         }
     }
 }

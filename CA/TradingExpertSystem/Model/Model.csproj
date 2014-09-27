@@ -48,12 +48,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Country.cs" />
+    <Compile Include="Criterion.cs" />
+    <Compile Include="Fact.cs" />
+    <Compile Include="Rule.cs" />
     <Compile Include="Transaction.cs" />
     <Compile Include="Currency.cs" />
     <Compile Include="Account.cs" />
     <Compile Include="Indices.cs" />
     <Compile Include="DataContext.cs" />
-    <Compile Include="NeuroEstimator.cs" />
+    <Compile Include="NeuroPredictor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="FuzzyTrader.cs" />
   </ItemGroup>

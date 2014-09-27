@@ -6,7 +6,7 @@ using AForge.Neuro.Learning;
 
 namespace Model
 {
-    public class NeuroEstimator
+    public class NeuroPredictor
     {
         private readonly double _learningRate;
         private readonly int _maxIterations;
@@ -18,11 +18,11 @@ namespace Model
         private int _outputDimension;
         private bool _stopTraining;
 
-        public NeuroEstimator() : this(2, 0.1, 0.001, 10, 0.8)
+        public NeuroPredictor() : this(2, 0.1, 0.001, 10, 0.8)
         {
         }
 
-        public NeuroEstimator(
+        public NeuroPredictor(
             double sigmoidAlphaValue,
             double learningRate,
             double momentum,
@@ -41,7 +41,7 @@ namespace Model
         public void Train(Indices[] samples)
         {
             _inputDimension = samples[0].Inputs.Length;
-            _outputDimension = samples[0].FutureOutputs.Length;
+            _outputDimension = samples[0].FutureActualOutputs.Length;
 
             _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension * 2, 10, _outputDimension);
             var learning = new BackPropagationLearning(_network)
@@ -51,7 +51,7 @@ namespace Model
             };
 
             double[][] inputs = samples.Select(o => o.Inputs).ToArray();
-            double[][] outputs = samples.Select(o => o.FutureOutputs).ToArray();
+            double[][] outputs = samples.Select(o => o.FutureActualOutputs).ToArray();
             int iteration = 0;
 
             int noChangeCount = 0;
@@ -86,7 +86,7 @@ namespace Model
                 double[] output = Estimate(sample);
                 for (int i = 0; i < _outputDimension; i++)
                 {
-                    double delta = output[i] - sample.FutureOutputs[i];
+                    double delta = output[i] - sample.FutureActualOutputs[i];
                     total += delta * delta;
                 }
             }
@@ -98,7 +98,9 @@ namespace Model
         {
             if (_network == null) throw new InvalidOperationException("Neural Network not trained yet.");
 
-            return _network.Compute(sample.Inputs);
+            var prediction = _network.Compute(sample.Inputs);
+            sample.FuturePredictedOutputs = prediction;
+            return prediction;
         }
 
         public void StopTrain()
