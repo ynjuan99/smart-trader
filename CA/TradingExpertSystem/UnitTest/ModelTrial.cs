@@ -49,7 +49,9 @@ namespace UnitTest
                 //Trace.WriteLine(model);
 
                 //Open account
-                var account = new Account(10000, 10000, 10000, testIndices[0].GetCurrentExchangeRate(Currency.SGD), testIndices[0].GetCurrentExchangeRate(Currency.UKP));
+                var account = new Account(10000, 10000, 10000, 
+                    testIndices[0].GetCurrentExchangeRate(Currency.SGD), 
+                    testIndices[0].GetCurrentExchangeRate(Currency.UKP));
 
                 //Build trader
                 var trader = new FuzzyTrader(DataContext.Instance.Rules);
