@@ -63,11 +63,8 @@ namespace UnitTest
                 {
                     var indices = testIndices[i];
                     var proposals = trader.Propose(indices);
-                    if (proposals.Count > 0)
-                    {
-                        account.Transact(indices, proposals);                        
-                    }
-
+                    account.Transact(indices, proposals);                        
+                    
                     //New balance
                     Trace.WriteLine(String.Format("{0:yyyy-MM-dd}: {1}", indices.Date, account));
                 }                
