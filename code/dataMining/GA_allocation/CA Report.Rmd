@@ -1,0 +1,214 @@
+---
+title: "Genetic Algorithm Report"
+author: "Elizabeth Tang (A0107689N)"
+date: "Saturday, November 01, 2014"
+output: pdf_document
+---
+
+# Problem Statement:
+To find the best allocation of stocks for a set Target Investment Amount, from results after testing the prediction models that we have trained. 
+
+# Argue for Genetic Algorithm:
+With the many stocks chosen by the models, we need to chose 
+- how many of each stock to buy within an allocated amount of money.
+- for diversification, we need to spread the money equally within different sectors.
+- to buy more of the stock if the combined test probability given by the models is higher.
+
+With Genetic Algorithm, we can set these as contraints to get the best stock allocation.
+
+## Data we are using:
+```{r, echo=FALSE, results='hide'}
+data = read.csv("D:/SmartTrader/smart-trader/trunk/code/dataMining/GA_allocation/data.csv")
+testDate = levels(data$Date)
+sectors = levels(data$sector)
+
+library(GA)
+library(ggplot2)
+```
+Using a sample of testing results for testDate of `r testDate`, and sectors: `r paste0(sectors, collapse=",")`
+
+Columns from testing results: 
+```{r}
+str(data)
+```
+
+Therefore Data includes 
+
+* votes and probability from prediction models:
+    + support vector machine
+    + neural network with 100 hidden nodes
+    + random forest
+    + ada boost
+* combined probability is mean of the 4 model probabilities.
+* prices on the testDate.
+Note that the prediction was a binary classification, its purpose was to test whether the tested stocked was in the top 20% 20Day Forward Price Momentum.
+
+## Preparation of Data:
+1. Filtering rows of results to those with more than 1 vote, where at least 1 model predicted a true.
+2. Using only variables 
+
+* SecId
+* votes
+* all.prob
+* sector
+* PriceToday, 
+remove others.
+
+3. Order the stocks by their sector and combined probability, while experimenting, found that with this ordering, the solutions were general better.
+
+```{r}
+data = data[data$voted.prob >0,]
+data = data[, c("SecId", "votes", "all.prob", "sector", "PriceToday")]
+data = data[order(data$sector, data$all.prob),]
+```
+There are `r nrow(data)` rows which will be passed for genetic algorithm processing.
+
+
+\pagebreak
+
+# Genetic Algorithm 
+
+## Chromosome Representation
+As the R package "GA" is used. 
+There are 3 types of genetic algorithm that can be run: 
+
+* binary
+* real-valued <- floating points
+* permutation <- "for problems that involves reordering of a list"
+
+Since this problem is about stock allocation, we are trying to find the number to buy for each stock. This number must be an integer and not a floating point. Also, this is not a permutation problem.
+
+Therefore we are only left with the "binary" type. 
+```{r}
+numStocks = nrow(data)
+bitsPerStock = 5
+nBits = bitsPerStock*numStocks
+```
+
+Assuming we put the number of bits for each stock as `r bitsPerStock`, the maximum number that can be bought with each stock is 2^number of bits is `r 2^bitsPerStock`.
+This can be changed but for simplication of the problem, shall set as `r bitsPerStock` bits.
+
+So the chromosome will be `r bitsPerStock` * (number of stocks), `r bitsPerStock*numStocks` bits. This binary string has to be decoded into integers for the fitness function and for deciphering the solution.
+
+```{r}
+decode <- function(string) {
+  string <- gray2binary(string)
+  startingPositions = rep(1,numStocks) + c(0:(numStocks-1) *bitsPerStock)
+  noToBuy = as.integer()
+  for (i in 1:numStocks ) {
+    noToBuy = c(noToBuy, 
+                binary2decimal(string[startingPositions[i]:
+                                        (startingPositions[i]+bitsPerStock-1)]))
+  }
+  return(noToBuy)
+}
+```
+
+
+\pagebreak
+
+
+## Objective
+1. Total Proposed Spent on Stocks to be bought to reach the target Investment Amount.
+2. The total Proposed amount spent on each sector should be the same.
+3. As the combined test probability increases, the Proposed value spent on the stock should also increase. 
+
+## Fitness Function
+Using Soft constraints, where there will be increasing penalties will be imposed when constraints are not met. 
+
+1. For Objective 1: 
+      + abs( Target Investment Amount - Total Proposed Spent on Stocks)
+2. For Objective 2:
+      + abs(Total Proposed Spent on Sector 1 - Total Proposed Spent on Sector 2)
+3. For Objective 3:  
+      + bin combined probability (3 bins, bin1 for lower probability)
+      + limit bin1's proposed amount spent by an amount:  targetTotalInvestAmount/numStocks * combined probability of the stock, only penalize if more than 0.
+      + limit bin2's proposed amount spent by an amount:  targetTotalInvestAmount/numStocks * combined probability of the stock * 2, only penalize if more than 0. bin2's limit has a *2 to make it higher.
+      + bin1 and bin2 has an upper limit, bin3 does not.
+
+Hard constraints are not used because it means stopping the GA run entirely and not only for a single iteration.
+
+```{r}
+fitness <- function(string) {
+  noToBuy <- decode(string)
+  spent = noToBuy * data$PriceToday
+  sumSpent = sum(spent)
+  
+  #penalize difference from targetTotalInvestAmount
+  diffFromTarget = abs(targetTotalInvestAmount - sumSpent)
+  
+  #penalize difference spent on sectors
+  sector1 = which(data$sector==sectors[1])
+  sector2 = which(data$sector==sectors[2])
+  diffInSectors = abs(sum(spent[sector1]) - sum(spent[sector2]))
+
+  prob.bin = cut(data$all.prob, 
+                 c(0.5, 0.6, 0.8, 1), 
+                 labels=c(1,2,3), include.lowest=TRUE)
+  
+  # limit the amount spent on bin1 stocks 
+  diffSpentBin1 = spent[prob.bin == 1]-
+                  (targetTotalInvestAmount/numStocks*data$all.prob[prob.bin == 1])
+  diffSpentBin1[diffSpentBin1<0] = 0
+  diffSpentBin1 = sum(diffSpentBin1)
+
+  # limit the amount spent on bin2 stocks 
+  diffSpentBin2 = spent[prob.bin == 2]-
+    (targetTotalInvestAmount/numStocks*data$all.prob[prob.bin == 2]*2)
+  diffSpentBin2[diffSpentBin2<0] = 0
+  diffSpentBin2 = sum(diffSpentBin2)
+  
+  return(-(diffFromTarget + diffSpentBin1 + diffSpentBin2 + diffInSectors))
+}
+```
+
+## Operators 
+For the Default Binary Type,
+
+* Population 
+    + initially randomly populated with nBits binary strings.
+* Crossover 
+    + using single point cross over, where "one crossover point is selected, binary string from beginning of chromosome to the crossover point is copied from one parent, the rest is copied from the second parent". *Referenced from http://www.obitko.com/tutorials/genetic-algorithms/crossover-mutation.php.*
+    + crossover is 0.8, 80%.
+* Mutation 
+    + using Uniform random mutation, where "The mutation of bit strings ensue through bit flips at random positions." *Referenced from http://en.wikipedia.org/wiki/Mutation_(genetic_algorithm).*
+    + mutation is 0.1, 10%.
+* Selection 
+    + using Linear-rank selection, where "In linear ranking selection (Baker, 1985), first the individuals are ranked according to the fitness values. Those with high fitness values will be ranked high and those with low fitness values will eventually have lower ranks. Then the individuals are selected with a probability that is linearly proportional to the rank of the individuals in the population." *Referenced from A REVIEW OF SELECTION METHODS IN GENETIC ALGORITHM, by R.SIVARAJ.*
+
+## Run
+```{r, results='hide'}
+targetTotalInvestAmount = 5000
+
+GA <- ga(type="binary", fitness=fitness, nBits=nBits, popSize = 500,
+         pmutation = 0.3, maxiter=200) 
+```
+
+## Evalution of Best Solution
+```{r}
+noToBuy = decode(GA@solution)
+prob = data$all.prob
+spent = noToBuy * data$PriceToday
+cbind(probability=round(prob,2), noToBuy, price = round(data$PriceToday,2), spent=round(spent,2))
+sum(spent)
+```
+The total Proposed amount to Invest is `r sum(spent)`. <- 1st part of fitness function.
+
+```{r}
+sector1 = which(data$sector==sectors[1])
+sector2 = which(data$sector==sectors[2])
+abs(sum(spent[sector1]) - sum(spent[sector2]))
+```
+The difference in amount spent on the 2 sectors is `r abs(sum(spent[sector1]) - sum(spent[sector2]))`. <- 2nd part of fitness function.
+
+\pagebreak
+
+Plot of Combined Probability of stock vs Proposed Spent on Stock.
+```{r}
+plot(GA)
+qplot(prob, spent, color=data$sector)
+```
+Shows the 3rd part of the fitness function. As probability increases, proposed amount spent generally increases. Though only some points with higher probability has higher proposed spent.
+
+# Conclusion
+This Optimization Problem seems to have fulfilled the original objectives though the 3rd Object of letting higer probabilities have higher proposed spent is not very satisfactory. Will need to refine the fitness function for that for better accuracy.
