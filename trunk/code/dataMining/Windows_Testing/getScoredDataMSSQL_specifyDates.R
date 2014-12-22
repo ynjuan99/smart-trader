@@ -1,27 +1,29 @@
-source("commonUtility.R")
-addLibrary()
 library(stringr)
+library(dplyr)
 
 # Control Panel > Administrative Tools > Data Sources
 # Add User Data Source with SQL Server Native Client 10.0
 # (i used localDB as name of this connection)
 # channel <- odbcConnect("ODBC_NAME", uid="username", pwd="password");
 
-
+# sector = "Health Care"
 # startDate = '2008-12-01'
 # testDate = '2009-01-04'
 # momEndDate = '2009-01-30'
-dayDiff = 20
+# dayDiff = 20
 
-getMonthlyData <- function(sector, startDate, testDate, momEndDate) {
+weekdays = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+
+getData <- function(sector, trainingDates) {
+
   library(RODBC);
   channel <- odbcConnect("localDB") 
   securities <- sqlQuery(channel, "
                          SELECT *
                          FROM [S&P].[dbo].[tb_SecurityMaster]
                          ")
-  table(securities$SML)
-  table(securities$SML, securities$GICS_SEC) 
+#   table(securities$SML)
+#   table(securities$SML, securities$GICS_SEC) 
   if (sector == "All") {
     secIds = securities[ (securities$SML == 'L' | securities$SML == 'M') , 
                          'SecId']
@@ -36,22 +38,48 @@ getMonthlyData <- function(sector, startDate, testDate, momEndDate) {
   
   # #using 2008 data cos 2010 data not much
   data <- sqlQuery(channel, paste0("
-             SELECT *
+             SELECT 
+Date, 
+SecId, 
+Sector,
+EarningsFY2UpDnGrade_1M,
+EarningsFY1UpDnGrade_1M,
+EarningsRevFY1_1M,
+NMRevFY1_1M,
+PriceMA10,
+PriceMA20,
+PMOM10,
+RSI14D,
+EarningsFY2UpDnGrade_3M,
+FERating,
+PriceSlope10D,
+PriceMA50,
+SalesRevFY1_1M,
+PMOM20,
+NMRevFY1_3M,
+EarningsFY2UpDnGrade_6M,
+PriceSlope20D,
+Price52WHigh,
+EarningsRevFY1_3M,
+PMOM50,
+PriceTStat200D,
+RSI50D,
+MoneyFlow14D,
+PriceTStat100D,
+PEGFY1,
+Volatility12M,
+SharesChg12M,
+PriceMA100,
+Volatility6M,
+SalesYieldFY1,
+EarningsYieldFY2,
+PriceRetFF20D_Absolute
              FROM [S&P].[dbo].[tb_FactorScore] 
-             WHERE [DATE] >= '", startDate, "' AND [DATE] < '", momEndDate,
-             "' AND SECTOR = '", sector, 
+             WHERE [DATE] in ('", paste(trainingDates, collapse = "','"),
+             "') AND SECTOR = '", sector, 
              "' AND SecId in (", paste(secIds,collapse=","), 
-             ") ORDER by [Date], SecId")) #nov and dec 2008
+             ") ORDER by [Date], SecId")) #PriceRetFF20D,
 
-  #use price momentum instead
-  priceMom <- sqlQuery(channel, paste0(" 
-                 SELECT *
-                 FROM [S&P].[dbo].[tb_FactorDataOld]
-                 where [DATE] >= '", startDate, "' AND [DATE] < '", momEndDate,
-                 "' AND Fid = 2098 AND SecId in (", paste(secIds,collapse=","),
-                 ") ORDER by [Date], SecId
-                 "))
-  
   close(channel)
     
   ### Convert columns format to numeric
@@ -60,45 +88,11 @@ getMonthlyData <- function(sector, startDate, testDate, momEndDate) {
   
   col.input = colnames(data)
   data$DayOfWeek = as.factor(weekdays(data$Date))
+  levels(data$DayOfWeek) = weekdays #for those training data of only 1 day
   
   data = data[,c("DayOfWeek", col.input)] #put in front so later easier
-  col.input = colnames(data)
 #   summary(data)
-  
-  #columns that have more than 20% not filled.
-  columnsToRemove = colnames(data)[apply(data, 2, function(x) sum(is.na(x))) > 0.2 * nrow(data)]
-  for (i in 4:ncol(data)) {
-    if (length(unique(data[,i])) < 4)
-      columnsToRemove = c(columnsToRemove, colnames(data)[i])
-  }
-  
-#   columnsToRemove  <- c("BookYieldFY3", "DivRevFY1_3M", "DivRevFY1_6M", 
-#                         "EarningsFY2UpDnGrade_3M", "EarningsFY3UpDnGrade_3M", 
-#                         "EarningsFY1UpDnGrade_6M", "EarningsFY2UpDnGrade_6M", 
-#                         "EarningsFY3UpDnGrade_6M", "EBITDAFY1UpDnGrade_3M", 
-#                         "EBITDAFY2UpDnGrade_3M", "EBITDAFY3UpDnGrade_3M", 
-#                         "EBITDAFY1UpDnGrade_6M", "EBITDAFY2UpDnGrade_6M", 
-#                         "EBITDAFY3UpDnGrade_6M", "DivRatio", 
-#                         "OpCFOverCDiv1Y","EBITDAFY3Std")
-  col.input = col.input[ !col.input %in% columnsToRemove]  
-  data = data[ , col.input]
-  
-  library(plyr)
-  priceMom$Fid = NULL
-  
-  priceMom$Price = as.numeric(as.character(priceMom$Data))
-  priceMom <- ddply(priceMom, .(SecId), transform,
-                    diff20 = c(Price[-(1:dayDiff)],rep(NA,dayDiff))) #take 20th value as 1st
-  priceMom = priceMom[,c('Date', 'SecId', 'diff20')]
-  
-  data2 = join(data, priceMom)
-  data2$Date = as.Date(data2$Date)
-  data2 = data2[data2$Date<=as.Date(testDate),]
-  
-
-  #data2[is.na(data2)] <- 0
-#   head(data2[,1:20])
-  return(data2)
+  data$output = data$PriceRetFF20D_Absolute #rename
+  data$PriceRetFF20D_Absolute = NULL
+  return(data)
 }
-# save(dataset, file="scored_financials_L_2008.Rdata")
-# write.csv(dataset, "scored_financials_L_2008.csv")
