@@ -55,9 +55,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IModel.cs" />
+    <Compile Include="CompositeClassificationModel.cs" />
+    <Compile Include="Model.cs" />
     <Compile Include="PnnModel.cs" />
     <Compile Include="ClassficationModel.cs" />
+    <Compile Include="GeneticNeuroModel.cs" />
     <Compile Include="RegressionModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
