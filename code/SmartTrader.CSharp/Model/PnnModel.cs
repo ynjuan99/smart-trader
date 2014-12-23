@@ -13,7 +13,7 @@ using Repository;
 
 namespace Model
 {
-    public class PnnModel : IModel
+    public class PnnModel : Model
     {
         private enum Category
         {
@@ -36,7 +36,7 @@ namespace Model
             _tolerance = tolerance;
         }
 
-        public void Train(IList<DataTuple> samples)
+        protected override void TrainInternal(IList<DataTuple> samples)
         {
             _inputDimension = samples[0].Inputs.Length;
             _outputDimension = 3;
@@ -47,7 +47,7 @@ namespace Model
             train.Iteration();
         }
 
-        public double Test(IList<DataTuple> samples)
+        protected override double TestInternal(IList<DataTuple> samples)
         {
             int passed = 0;
             foreach (var sample in samples)
@@ -59,18 +59,14 @@ namespace Model
             return (double)passed / samples.Count;            
         }
 
-        public double[] Estimate(DataTuple sample)
+        public override double[] Estimate(DataTuple sample)
         {
             var outputs = _network.Compute(new BasicMLData(sample.Inputs));
             var result = new double[outputs.Count];
             outputs.CopyTo(result, 0, result.Length);
             return result;
         }
-
-        public void StopTrain()
-        {            
-        }
-
+        
         private bool PassTest(DataTuple sample, double[] output)
         {            
             var output0 = ClassifyMap(sample.Outputs);
