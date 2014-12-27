@@ -141,12 +141,12 @@ Year	Month	TotalRecord
 */
 
 WITH t AS (
-SELECT YEAR(Date) AS Year, Sector, COUNT(*) AS TotalRecord 
-FROM tb_FactorScore
-WHERE Sector <> 'All' 
-GROUP BY YEAR(Date), Sector
+	SELECT YEAR(Date) AS Year, Sector, COUNT(*) AS TotalRecord 
+	FROM tb_FactorScore
+	WHERE Sector <> 'All' 
+	GROUP BY YEAR(Date), Sector
 ), t1 AS (
-SELECT ROW_NUMBER() OVER(PARTITION BY YEAR ORDER BY TotalRecord DESC) AS Rank, * FROM t
+	SELECT ROW_NUMBER() OVER(PARTITION BY YEAR ORDER BY TotalRecord DESC) AS Rank, * FROM t
 )
 SELECT * FROM t1 WHERE t1.Rank IN (1, 2, 3)
 /*
@@ -191,3 +191,9 @@ Rank	Year	Sector	TotalRecord
 
 
 /* so we choose 2013, Financials and Consumer Discretionary */
+
+SELECT YEAR(Date) AS Year, MONTH(Date) AS Month, Sector, SIGN(PriceRetFF20D_Absolute) AS Trend, COUNT(*) AS TotalRecord 
+FROM tb_FactorScore WHERE Sector IN ('Financials', 'Consumer Discretionary', 'Information Technology')
+GROUP BY YEAR(Date), MONTH(Date), Sector, SIGN(PriceRetFF20D_Absolute)
+ORDER BY Year, Month, Sector, SIGN(PriceRetFF20D_Absolute) DESC
+

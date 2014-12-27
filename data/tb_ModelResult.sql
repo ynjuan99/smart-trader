@@ -3,6 +3,7 @@ CREATE TABLE [dbo].[tb_ModelResult](
 	[ModelName] [NVARCHAR](50) NOT NULL,
 	[Sector] [NVARCHAR](50) NOT NULL,
 	[ForYear] [INT] NOT NULL,
+	[ForMonth] [INT] NOT NULL,
 	[Accuracy] [FLOAT] NULL,
 	[Sensitivity] [FLOAT] NULL,
 	[Specificity] [FLOAT] NULL,
@@ -10,8 +11,13 @@ CREATE TABLE [dbo].[tb_ModelResult](
 	[Top10SecurityIds] [NVARCHAR](1000) NULL   
 )
 
-
+--Insert 
 INSERT tb_ModelResult(ModelName, Sector, ForYear, Accuracy, Sensitivity, Specificity, Precision, Top10SecurityIds)
 VALUES()
+
+--Query last day for prediction
+SELECT * FROM tb_Calendar 
+WHERE IsBizMonthEnd = 1 AND YEAR(CalendarDate) = '' AND MONTH(CalendarDate) = ''
+
 
 
