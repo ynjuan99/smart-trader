@@ -36,7 +36,7 @@ namespace Model
             _tolerance = tolerance;
         }
 
-        protected override void TrainInternal(IList<DataTuple> samples)
+        protected internal override void TrainInternal(IList<DataTuple> samples)
         {
             _inputDimension = samples[0].Inputs.Length;
             _outputDimension = 3;
@@ -47,7 +47,7 @@ namespace Model
             train.Iteration();
         }
 
-        protected override double TestInternal(IList<DataTuple> samples)
+        protected internal override double TestInternal(IList<DataTuple> samples)
         {
             int passed = 0;
             foreach (var sample in samples)
@@ -59,7 +59,7 @@ namespace Model
             return (double)passed / samples.Count;            
         }
 
-        public override double[] Estimate(DataTuple sample)
+        protected internal override double[] Estimate(DataTuple sample)
         {
             var outputs = _network.Compute(new BasicMLData(sample.Inputs));
             var result = new double[outputs.Count];

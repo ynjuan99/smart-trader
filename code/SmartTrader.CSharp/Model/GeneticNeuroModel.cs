@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AForge.Neuro;
+using System.Configuration;
 using AForge.Neuro.Learning;
-using Repository;
 
 namespace Model
 {
@@ -13,7 +8,6 @@ namespace Model
     {
         public GeneticNeuroModel()
         {
-            
         }
 
         public GeneticNeuroModel(
@@ -27,7 +21,12 @@ namespace Model
 
         protected override ISupervisedLearning GetLearningMethod()
         {
-            return new EvolutionaryLearning(_network, 100);
+            return new EvolutionaryLearning(_network, DefaultPopulation);
+        }
+
+        private static int DefaultPopulation
+        {
+            get { return Convert.ToInt32(ConfigurationManager.AppSettings["GeneticNeuroModelDefaultPopulation"]); }
         }
     }
 }

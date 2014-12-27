@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,8 +20,9 @@ namespace Model
         
         protected int _inputDimension;
         protected int _outputDimension;
-        
-        public RegressionModel() : this(2, 0.1, 0.001, 10, 0.8)
+
+        public RegressionModel()
+            : this(SigmoidAlphaValue, LearningRate, Momentum, MaxTrainingIterations, AutoStopRatio)
         {
         }
 
@@ -37,10 +39,8 @@ namespace Model
             _maxIterations = maxIterations;
             _maxTry = (int)(_maxIterations * Math.Max(0.5, Math.Min(1.0, autoStopRatio)));
         }
-
-        public event Action<double[]> TransformOutput;
-
-        protected override void TrainInternal(IList<DataTuple> samples)
+        
+        protected internal override void TrainInternal(IList<DataTuple> samples)
         {            
             _inputDimension = samples[0].Inputs.Length;
             _outputDimension = samples[0].Outputs.Length;
@@ -49,16 +49,9 @@ namespace Model
             _network = new ActivationNetwork(new BipolarSigmoidFunction(_sigmoidAlphaValue), _inputDimension, _inputDimension / 2, 7, _outputDimension);
             var learning = GetLearningMethod();
 
-            var inputs = samples.Select(o => o.Inputs).ToArray();
+            var inputs = samples.Select(o => o.Inputs).ToArray();                        
             var outputs = samples.Select(o => o.Outputs).ToArray();
-            if (TransformOutput != null)
-            {
-                foreach (var item in outputs)
-                {
-                    TransformOutput(item);
-                }
-            }
-
+            
             int iteration = 0;
 
             int noChangeCount = 0;
@@ -94,7 +87,7 @@ namespace Model
             };
         }
         
-        protected override double TestInternal(IList<DataTuple> samples)
+        protected internal override double TestInternal(IList<DataTuple> samples)
         {
             double total = 0;
             int accure = 0;
@@ -116,7 +109,7 @@ namespace Model
             return total / (samples.Count * _outputDimension);
         }
 
-        public override double[] Estimate(DataTuple sample)
+        protected internal override double[] Estimate(DataTuple sample)
         {
             if (_network == null) throw new InvalidOperationException("Neural Network not trained yet.");
             
@@ -155,5 +148,28 @@ namespace Model
 
             return builder.ToString();
         }
+
+        private static int MaxTrainingIterations
+        {
+            get { return Convert.ToInt32(ConfigurationManager.AppSettings["MaxTrainingIterations"]); }
+        }
+
+        private static double SigmoidAlphaValue
+        {
+            get { return Convert.ToDouble(ConfigurationManager.AppSettings["SigmoidAlphaValue"]); }
+        }
+        private static double LearningRate
+        {
+            get { return Convert.ToDouble(ConfigurationManager.AppSettings["LearningRate"]); }
+        }
+        private static double Momentum
+        {
+            get { return Convert.ToDouble(ConfigurationManager.AppSettings["Momentum"]); }
+        }
+        private static double AutoStopRatio
+        {
+            get { return Convert.ToDouble(ConfigurationManager.AppSettings["AutoStopRatio"]); }
+        }
     }
+
 }
