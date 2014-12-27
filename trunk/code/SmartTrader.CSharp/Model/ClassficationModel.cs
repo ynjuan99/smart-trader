@@ -6,13 +6,20 @@ using System.Text;
 using System.Threading.Tasks;
 using AForge.Neuro;
 using AForge.Neuro.Learning;
+using Encog.ML.Tree;
 using Repository;
 
 namespace Model
 {
+    public interface IClassificationModel : IMeasurement
+    {
+        IList<DataTuple> TopSecurityList { get; }
+    }
+
     public class ClassificationModel : 
         //GeneticNeuroModel 
         RegressionModel
+        , IClassificationModel
     {        
         public ClassificationModel()
         {
@@ -28,6 +35,7 @@ namespace Model
         }
 
         public double[] ClassificationBenchmark { get; set; }
+        public IList<DataTuple> TopSecurityList { get; private set; }
 
         protected internal override double TestInternal(IList<DataTuple> samples)
         {
@@ -48,6 +56,12 @@ namespace Model
             Sensitivity = (double)bothPositive / actualPositive;
             Specificity = (double)bothNegative / actualNegative;
             Precision = (double)bothPositive / predictedPositive;
+            TopSecurityList = samples.Where(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive) && o.ClassificationOutputs.Item2.All(p => p == Trend.Positive))
+                .OrderByDescending(o => o.OriginalOutputs[0])
+                .Take(TopNSecurity)
+                .GroupBy(o => o.SecurityId)
+                .Select(o => o.First())
+                .ToList();
             
             return Accuracy.Value;
         }
@@ -69,7 +83,12 @@ namespace Model
             }
 
             return pass;
-        }        
+        }
+
+        private static int TopNSecurity
+        {
+            get { return Convert.ToInt32(ConfigurationManager.AppSettings["TopNSecurity"]); }
+        }
     }
 
     public class ClassificationModelWithClassOutput : ClassificationModel

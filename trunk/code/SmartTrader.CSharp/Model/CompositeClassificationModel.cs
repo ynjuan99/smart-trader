@@ -7,7 +7,7 @@ using Repository;
 
 namespace Model
 {
-    public class CompositeClassificationModel : Model
+    public class CompositeClassificationModel : Model, IClassificationModel
     {
         private readonly Tuple<ClassificationModel, double>[] _models;
         public CompositeClassificationModel(params Tuple<ClassificationModel, double>[] models)
@@ -56,6 +56,11 @@ namespace Model
         protected internal override double[] Estimate(DataTuple sample)
         {
             throw new NotImplementedException();
+        }
+
+        public IList<DataTuple> TopSecurityList
+        {
+            get; private set; 
         }
     }
 }

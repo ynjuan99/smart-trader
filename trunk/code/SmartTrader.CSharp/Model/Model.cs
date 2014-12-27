@@ -4,6 +4,14 @@ using Repository;
 
 namespace Model
 {
+    public interface IMeasurement
+    {
+        double? Accuracy { get; }        
+        double? Sensitivity { get; }
+        double? Specificity { get; }
+        double? Precision { get; }
+    }
+
     public abstract class Model
     {
         protected int _maxIterations;
@@ -29,8 +37,7 @@ namespace Model
         }
 
         public double LeastTrainingMse { get; protected set; }
-        public double LeastTestingMse { get; protected set; }
-
+        public double LeastTestingMse { get; protected set; }        
 
         public event Action<DataTuple> TransformOutput;
         public virtual void Train(IList<DataTuple> samples)
@@ -51,7 +58,7 @@ namespace Model
 
         public virtual double Test(IList<DataTuple> samples)
         {
-            TestingSize = samples.Count;
+            TestingSize = samples.Count;            
             if (TransformOutput != null)
             {
                 foreach (var item in samples)
