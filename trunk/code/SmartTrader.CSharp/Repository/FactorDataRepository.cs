@@ -1,34 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
+using System.Configuration;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Repository
 {
     public class FactorDataRepository
     {
-        private const string ConnectionString = "Initial Catalog=SmartTrader;Data Source=localhost;Integrated Security=SSPI;";
-        private const int TopN = 20;
-        public static IList<DataTuple> GetFactorData(int sampling, string sector, int year, params string[] outputColumns)
+        internal static string ConnectionString
         {
-            string filter = string.Format("YEAR(Date) = {0} AND Sector = '{1}'", year, sector);            
-            return GetData(sampling, filter, outputColumns);
+            get { return ConfigurationManager.AppSettings["ConnectionString"]; }
         }
-        public static IList<DataTuple> GetFactorData(int sampling, string sector, DateTime start, DateTime end, params string[] outputColumns)
+
+        internal static int ClassificationBenchmark
+        {
+            get { return Convert.ToInt32(ConfigurationManager.AppSettings["ClassificationBenchmark"]); }
+        }
+
+        public static IList<DataTuple> GetFactorData(int sampling, string sector, int year)
+        {
+            string filter = string.Format("YEAR(Date) = {0} AND Sector = '{1}'", year, sector);
+            return GetData(sampling, filter);
+        }
+
+        public static IList<DataTuple> GetFactorData(int sampling, string sector, DateTime start, DateTime end)
         {
             string filter = string.Format("Sector = '{0}' AND Date >= '{1:yyyy-MM-dd HH:mm:ss.fff}' AND Date < '{2:yyyy-MM-dd HH:mm:ss.fff}'",
                 sector, start, end.AddDays(1));
-            return GetData(sampling, filter, outputColumns);
+            return GetData(sampling, filter);
         }
 
-        private static IList<DataTuple> GetData(int samplePercentage, string filter, params string[] outputColumns)
+        private static IList<DataTuple> GetData(int samplePercentage, string filter)
         {
             #region Script
-            const string sql = @"
+            string sampling = (samplePercentage > 0 && samplePercentage < 100)
+                ? string.Format(" TABLESAMPLE ({0} PERCENT) ", samplePercentage)
+                : string.Empty;
+            string filterClause = string.IsNullOrWhiteSpace(filter) ? "0 = 0" : filter;
+
+            string sql = string.Format(@"
 SELECT 
 Date, 
 SecId, 
@@ -66,53 +77,35 @@ SalesYieldFY1,
 EarningsYieldFY2,
 PriceRetFF20D,
 PriceRetFF20D_Absolute
-FROM    dbo.tb_FactorScore 
-";            
+FROM    dbo.tb_FactorScore {0} 
+WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
+", sampling, filterClause);
             #endregion
-
-            var query = new StringBuilder(sql);
-            if (samplePercentage > 0 && samplePercentage < 100)
-            {
-                query.AppendFormat(" TABLESAMPLE ({0} PERCENT) ", samplePercentage);
-            }
-            query.Append(" WHERE 1 = 1");
-
-            foreach (string item in outputColumns)
-            {
-                query.AppendFormat(" AND {0} IS NOT NULL", item);
-            }
-            if (!string.IsNullOrWhiteSpace(filter))
-            {
-                query.AppendFormat(" AND {0} ", filter);
-            }
 
             var result = new List<DataTuple>(15000);
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
-                using (var cmd = new SqlCommand(query.ToString(), conn))
+                using (var cmd = new SqlCommand(sql, conn))
                 {
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                         {
                             DateTime date = (DateTime)reader[0];
-                            int sectorId = Convert.ToInt32(reader[1]);
+                            int securityId = Convert.ToInt32(reader[1]);
                             string sector = Convert.ToString(reader[2]);
-                            //3: descriptive columns, 12: output columns
-                            int width = reader.FieldCount - 3 - outputColumns.Length;
-                            var inputs = new double[width];
-                            for (int i = 0; i < width; i++)
-                            {
-                                inputs[i] = Convert.ToDouble(reader[i + 3]);
-                            }
 
-                            var outputs = new double[outputColumns.Length];
-                            for (int i = 0; i < outputColumns.Length; i++)
+                            int width = reader.FieldCount - 3 - 2;
+                            var inputs = new double[width];
+                            for (int i = 3; i < width; i++)
                             {
-                                outputs[i] = Convert.ToDouble(reader[outputColumns[i]]);
-                            }
-                            var tuple = new DataTuple(date, sectorId, sector, inputs, outputs);
+                                inputs[i] = Convert.ToDouble(reader[i]);
+                            }                            
+                            double actualTarget = Convert.ToDouble(reader["PriceRetFF20D"]);
+                            var outputs = new[] { actualTarget };
+                            
+                            var tuple = new DataTuple(date, securityId, sector, inputs, outputs);
                             result.Add(tuple);
                         }
                     }
@@ -122,24 +115,58 @@ FROM    dbo.tb_FactorScore
             return result;
         }
 
-        public static double[] GetClassificationBenchmark(IList<DataTuple> data)
+        public static double GetClassificationBenchmark(IList<DataTuple> data, Func<DataTuple, double> selector, Func<DataTuple, double> sorter)
         {
-            double pos = (double)data.Count * TopN / 100;
+            double pos = (double)data.Count * ClassificationBenchmark / 100;
             int index = (int)Math.Floor(pos);
-            int length = data[0].Outputs.Length;
-            var result = new double[length];
-            for (int i = 0; i < length; i++)
-            {
-                //method 1
-                var source = data.Select(o => o.Outputs[i]).OrderByDescending(o => o);
-                result[i] = (source.ElementAt(index) + source.ElementAt(index + 1)) / 2;
+            var source = data.OrderByDescending(sorter).Select(selector).ToArray();
+            return (source[index] + source[index + 1]) / 2;
+        }
 
-                //method 2
-                //result[i] = data.Select(o => o.Outputs[i]).OrderByDescending(o => o).Take(index).Average();
+        public static IList<SecurityInfo> GetSecurityList(params int[] securityIds)
+        {
+            string sql = string.Format("SELECT SecId, CompanyName AS Company, GICS_SEC AS Sector, SML FROM tb_SecurityMaster WHERE SecId IN ({0})",
+                string.Join(",", securityIds));
+
+            var result = new List<SecurityInfo>();
+            using (var conn = new SqlConnection(ConnectionString))
+            {
+                conn.Open();
+                var cmd = new SqlCommand(sql, conn);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var stockInfo = new SecurityInfo
+                        {
+                            SecurityId = Convert.ToInt32(reader[0]),
+                            Company = Convert.ToString(reader[1]),
+                            Sector = Convert.ToString(reader[2]),
+                            SML = Convert.ToString(reader[3])
+                        };
+                        result.Add(stockInfo);
+                    }
+                }
             }
 
             return result;
         }
+
+        public static DateTime GetTargetDate(int year, int month)
+        {
+            string sql = string.Format(@"
+SELECT CalendarDate FROM tb_Calendar 
+WHERE IsBizMonthEnd = 1 AND YEAR(CalendarDate) = {0} AND MONTH(CalendarDate) = {1})", year, month);
+
+            DateTime targetDate;
+            using (var conn = new SqlConnection(ConnectionString))
+            {
+                conn.Open();
+                var cmd = new SqlCommand(sql, conn);
+                targetDate = (DateTime)cmd.ExecuteScalar();                               
+            }
+
+            return targetDate;
+        }
     }
 }
-    

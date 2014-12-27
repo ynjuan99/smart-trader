@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,7 +14,7 @@ namespace Model
         //GeneticNeuroModel 
         RegressionModel
     {        
-        public ClassificationModel() : base()
+        public ClassificationModel()
         {
         }
 
@@ -28,36 +29,40 @@ namespace Model
 
         public double[] ClassificationBenchmark { get; set; }
 
-        protected override double TestInternal(IList<DataTuple> samples)
+        protected internal override double TestInternal(IList<DataTuple> samples)
         {
             int passed = 0;
             foreach (var sample in samples)
             {
-                double[] output = Estimate(sample);
-                if (PassTest(sample, output)) passed++;
+                double[] prediction = Estimate(sample);
+                if (PassTest(sample, prediction)) passed++;
             }
 
+            int actualPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive));
+            int bothPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive) && o.ClassificationOutputs.Item2.All(p => p == Trend.Positive));
+            int actualNegative = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Negative));
+            int bothNegative = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Negative) && o.ClassificationOutputs.Item2.All(p => p == Trend.Negative));            
+            int predictedPositive = samples.Count(o => o.ClassificationOutputs.Item2.All(p => p == Trend.Positive));
+            
             Accuracy = (double)passed / samples.Count;
-            int actualPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == 1));
-            int bothPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == 1) && o.ClassificationOutputs.Item2.All(p => p == 1));
-            int predictedPositive = samples.Count(o => o.ClassificationOutputs.Item2.All(p => p == 1));
+            Sensitivity = (double)bothPositive / actualPositive;
+            Specificity = (double)bothNegative / actualNegative;
             Precision = (double)bothPositive / predictedPositive;
-            Recall = (double)bothPositive / actualPositive;
-
+            
             return Accuracy.Value;
         }
 
-        protected internal virtual bool PassTest(DataTuple sample, double[] output)
+        protected internal virtual bool PassTest(DataTuple sample, double[] prediction)
         {
-            var class0 = new int[output.Length];
-            var class1 = new int[output.Length];
-            sample.ClassificationOutputs = new Tuple<int[], int[]>(class0, class1);
+            var class0 = new Trend[prediction.Length];
+            var class1 = new Trend[prediction.Length];
+            sample.ClassificationOutputs = new Tuple<Trend[], Trend[]>(class0, class1);
             
             bool pass = true;
             for (int i = 0; i < sample.Outputs.Length; i++)
             {
-                var f0 = sample.Outputs[i] - ClassificationBenchmark[i] > 0 ? 1 : 0;
-                var f1 = output[i] - ClassificationBenchmark[i] > 0 ? 1 : 0;
+                var f0 = sample.Outputs[i] - ClassificationBenchmark[i] > 0 ? Trend.Positive : Trend.Negative;
+                var f1 = prediction[i] - ClassificationBenchmark[i] > 0 ? Trend.Positive : Trend.Negative;
                 class0[i] = f0;
                 class1[i] = f1;
                 if (f0 != f1) pass = false;
@@ -71,7 +76,7 @@ namespace Model
     {
         public ClassificationModelWithClassOutput()
         {
-            TransformOutput += ToClassification;
+            TransformOutput += Classify;
         }
 
         public ClassificationModelWithClassOutput(
@@ -81,37 +86,39 @@ namespace Model
             int maxIterations,
             double autoStopRatio) : base(sigmoidAlphaValue, learningRate, momentum, maxIterations, autoStopRatio)
         {
-            TransformOutput += ToClassification;
+            TransformOutput += Classify;
         }
 
-        private void ToClassification(double[] output)
+        private void Classify(DataTuple sample)
         {
-            for (int i = 0; i < output.Length; i++)
+            for (int i = 0; i < sample.Outputs.Length; i++)
             {
-                output[i] = output[i] - ClassificationBenchmark[i] > 0 ? 1 : 0;
+                sample.Outputs[i] = sample.Outputs[i] - ClassificationBenchmark[i] > 0 ? 1 : 0;
             }
         }
 
-        protected internal override bool PassTest(DataTuple sample, double[] output)
+        protected internal override bool PassTest(DataTuple sample, double[] prediction)
         {
-            ToClassification(sample.Outputs);
-            
-
-            var class0 = new int[output.Length];
-            var class1 = new int[output.Length];
-            sample.ClassificationOutputs = new Tuple<int[], int[]>(class0, class1);
+            var class0 = new Trend[prediction.Length];
+            var class1 = new Trend[prediction.Length];
+            sample.ClassificationOutputs = new Tuple<Trend[], Trend[]>(class0, class1);
 
             bool pass = true;
-            for (int i = 0; i < output.Length; i++)
+            for (int i = 0; i < prediction.Length; i++)
             {
-                var f0 = sample.Outputs[i] > 0.99 ? 1 : 0;
-                var f1 = output[i] > 0.99 ? 1 : 0;
+                var f0 = sample.Outputs[i] > PositiveTrendThreshold ? Trend.Positive : Trend.Negative;
+                var f1 = prediction[i] > PositiveTrendThreshold ? Trend.Positive : Trend.Negative;
                 class0[i] = f0;
                 class1[i] = f1;
                 if (f0 != f1) pass = false;
             }
 
             return pass;
-        }        
+        }
+
+        private static double PositiveTrendThreshold
+        {
+            get { return Convert.ToDouble(ConfigurationManager.AppSettings["PositiveTrendThreshold"]); }             
+        }
     }    
 }

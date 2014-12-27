@@ -9,49 +9,51 @@ namespace Model
 {
     public class CompositeClassificationModel : Model
     {
-        private Tuple<ClassificationModel, double>[] _models;
+        private readonly Tuple<ClassificationModel, double>[] _models;
         public CompositeClassificationModel(params Tuple<ClassificationModel, double>[] models)
         {
             _models = models;
         }
 
-        protected override void TrainInternal(IList<DataTuple> samples)
-        {
-            throw new NotImplementedException();
+        protected internal override void TrainInternal(IList<DataTuple> samples)
+        {            
         }
 
-        protected override double TestInternal(IList<DataTuple> samples)
+        protected internal override double TestInternal(IList<DataTuple> samples)
         {
             int passed = 0;
             foreach (var sample in samples)
             {
                 double vote = 0;
                 double voteBase = 0;
-                for (int i = 0; i < _models.Length; i++)
+                foreach (var model in _models)
                 {
-                    var model = _models[i];
-
-                    double[] output = model.Item1.Estimate(sample);
-                    model.Item1.PassTest(sample, output);
+                    double[] prediction = model.Item1.Estimate(sample);
+                    model.Item1.PassTest(sample, prediction);
                     
-                    vote += model.Item2 * sample.ClassificationOutputs.Item2[0];
+                    vote += model.Item2 * (sample.ClassificationOutputs.Item2[0] == Trend.Positive ? 1 : -1);
                     voteBase += model.Item2;
                 }
 
-                sample.ClassificationOutputs.Item2[0] = vote / (_models.Length * voteBase) > 0.5 ? 1 : 0;
+                sample.ClassificationOutputs.Item2[0] = vote > 0 ? Trend.Positive : Trend.Negative;
             }
 
-            Accuracy = samples.Count(o => o.ClassificationOutputs.Item1[0] == o.ClassificationOutputs.Item2[0]) / samples.Count;
-            int actualPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == 1));
-            int bothPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == 1) && o.ClassificationOutputs.Item2.All(p => p == 1));
-            int predictedPositive = samples.Count(o => o.ClassificationOutputs.Item2.All(p => p == 1));
+            int actualPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive));
+            int bothPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive) && o.ClassificationOutputs.Item2.All(p => p == Trend.Positive));
+            int actualNegative = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Negative));
+            int bothNegative = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Negative) && o.ClassificationOutputs.Item2.All(p => p == Trend.Negative));
+            int predictedPositive = samples.Count(o => o.ClassificationOutputs.Item2.All(p => p == Trend.Positive));
+
+            Accuracy = (double)samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive) && o.ClassificationOutputs.Item2.All(p => p == Trend.Positive)
+                || o.ClassificationOutputs.Item1.All(p => p == Trend.Negative) && o.ClassificationOutputs.Item2.All(p => p == Trend.Negative)) / samples.Count;
+            Sensitivity = (double)bothPositive / actualPositive;
+            Specificity = (double)bothNegative / actualNegative;
             Precision = (double)bothPositive / predictedPositive;
-            Recall = (double)bothPositive / actualPositive;
 
             return Accuracy.Value;
-        }        
+        }
 
-        public override double[] Estimate(DataTuple sample)
+        protected internal override double[] Estimate(DataTuple sample)
         {
             throw new NotImplementedException();
         }

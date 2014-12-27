@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Model", "Model\Model.csproj", "{56B421B0-8C62-4C4A-92C1-75AA9C88F9E3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest", "UnitTest\UnitTest.csproj", "{5E08DB87-DE08-4B9E-86E7-84A8F6B6C0A5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repository", "Repository\Repository.csproj", "{B0070AD0-9772-45B2-B9BB-9EEAD6A96640}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp", "ConsoleApp\ConsoleApp.csproj", "{0302F738-0897-4E64-8183-64A6B77FE21D}"
 EndProject
 Global
 	GlobalSection(SubversionScc) = preSolution
@@ -31,6 +33,10 @@ Global
 		{B0070AD0-9772-45B2-B9BB-9EEAD6A96640}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0070AD0-9772-45B2-B9BB-9EEAD6A96640}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0070AD0-9772-45B2-B9BB-9EEAD6A96640}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0302F738-0897-4E64-8183-64A6B77FE21D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0302F738-0897-4E64-8183-64A6B77FE21D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0302F738-0897-4E64-8183-64A6B77FE21D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0302F738-0897-4E64-8183-64A6B77FE21D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
