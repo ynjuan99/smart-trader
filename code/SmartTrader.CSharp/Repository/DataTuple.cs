@@ -17,19 +17,22 @@ namespace Repository
     public class DataTuple
     {
         public DateTime Date;
-        public int SectorId;
+        public int SecurityId;
         public string Sector;
         public double[] Inputs;
+        public double[] OriginalOutputs;
         public double[] Outputs;
         public Tuple<Trend[], Trend[]> ClassificationOutputs;
 
-        public DataTuple(DateTime date, int sectorId, string sector, double[] inputs, double[] outputs)
+        public DataTuple(DateTime date, int securityId, string sector, double[] inputs, double[] outputs)
         {
             Date = date;
-            SectorId = sectorId;
+            SecurityId = securityId;
             Sector = sector;
             Inputs = inputs;
             Outputs = outputs;
+            OriginalOutputs = new double[outputs.Length];
+            Array.Copy(outputs, OriginalOutputs, outputs.Length);
         }
     }
 
@@ -41,20 +44,15 @@ namespace Repository
         public string SML { get; set; }
     }
 
-    public class Measurement
+    public class ResultTuple
     {
-        public Measurement()
-        {
-            Top10SecurityList = new List<SecurityInfo>();    
-        }
-
         public string Model { get; set; }
         public int ForYear { get; set; }
         public int ForMonth { get; set; }
 
         public string Sector { get; set; }
 
-        public List<SecurityInfo> Top10SecurityList { get; private set; }
+        public IList<SecurityInfo> TopSecurityList { get; set; }       
 
         public double? Accuracy { get; set; }        
         public double? Sensitivity { get; set; }

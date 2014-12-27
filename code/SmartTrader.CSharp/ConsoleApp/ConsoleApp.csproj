@@ -50,6 +50,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Repository\Repository.csproj">
+      <Project>{B0070AD0-9772-45B2-B9BB-9EEAD6A96640}</Project>
+      <Name>Repository</Name>
+    </ProjectReference>
     <ProjectReference Include="..\UnitTest\UnitTest.csproj">
       <Project>{5e08db87-de08-4b9e-86e7-84a8f6b6c0a5}</Project>
       <Name>UnitTest</Name>

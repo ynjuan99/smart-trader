@@ -156,7 +156,7 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
         {
             string sql = string.Format(@"
 SELECT CalendarDate FROM tb_Calendar 
-WHERE IsBizMonthEnd = 1 AND YEAR(CalendarDate) = {0} AND MONTH(CalendarDate) = {1})", year, month);
+WHERE IsBizMonthEnd = 1 AND YEAR(CalendarDate) = {0} AND MONTH(CalendarDate) = {1}", year, month);
 
             DateTime targetDate;
             using (var conn = new SqlConnection(ConnectionString))
