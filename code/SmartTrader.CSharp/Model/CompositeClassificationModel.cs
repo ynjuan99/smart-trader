@@ -71,7 +71,7 @@ namespace Model
 
         public string ModelName
         {
-            get { return "Windowed Neural Network"; }
+            get { return "NN"; }
         }
     }
 }

@@ -47,6 +47,7 @@ namespace Repository
     public class ResultTuple
     {
         public string Model { get; set; }
+        public string ModelDescription { get; set; }
         public int ForYear { get; set; }
         public int ForMonth { get; set; }
 
