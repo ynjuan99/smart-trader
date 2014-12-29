@@ -199,15 +199,22 @@ VALUES('{0}', '{1}', {2}, {3}, {4}, {5}, {6}, {7}, '{8}')
             } 
         }
        
-        public IList<ResultTuple> RetrieveResultTuple(string model, string sector, int year, int month)
+        public static List<ResultTuple> RetrieveResultTuple(int year, int month, string[] models, string[] sectors)
         {
             string sql = string.Format(@"
 SELECT ModelName, Sector, ForYear, ForMonth, Accuracy, Sensitivity, Specificity, Precision, Top10SecurityIds 
 FROM tb_ModelResult 
 WHERE ForYear = {0} AND ForMonth = {1}", year, month);
-            if (!string.IsNullOrWhiteSpace(model)) sql += string.Format(" AND ModelName LIKE '%{0}%'", model.Trim());
-            if (!string.IsNullOrWhiteSpace(sector)) sql += string.Format(" AND Sector LIKE '%{0}%'", sector.Trim());
+            if (models.Length > 0)
+            {
+                sql += string.Format(" AND ModelName IN ({0})", string.Join(",", models.Select(o => string.Format("'{0}'", o))));
+            }
+            if (sectors.Length > 0)
+            {
+                sql += string.Format(" AND Sector IN ({0})", string.Join(",", sectors.Select(o => string.Format("'{0}'", o))));
+            }
 
+			sql += " ORDER BY ModelName, Sector, ForYear, ForMonth";
             var result = new List<ResultTuple>();
             using (var conn = new SqlConnection(ConnectionString))
             {
@@ -228,7 +235,7 @@ WHERE ForYear = {0} AND ForMonth = {1}", year, month);
                             Specificity = Convert.ToDouble(reader[6]),
                             Precision = Convert.ToDouble(reader[7])                            
                         };
-                        var ids = Convert.ToString(reader[8]).Split(',').Select(o => Convert.ToInt32(o)).ToArray();                      
+                        var ids = Convert.ToString(reader[8]).Split(new [] {","}, StringSplitOptions.RemoveEmptyEntries).Select(o => Convert.ToInt32(o)).ToArray();                      
                         data.TopSecurityList = GetSecurityList(ids);
 
                         result.Add(data);

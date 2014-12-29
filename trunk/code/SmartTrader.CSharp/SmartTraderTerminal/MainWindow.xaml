@@ -1,0 +1,283 @@
+﻿<Window x:Class="SmartTraderTerminal.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:xceed="clr-namespace:Xceed.Wpf.Toolkit;assembly=Xceed.Wpf.Toolkit"
+    xmlns:c="clr-namespace:SmartTraderTerminal"
+    xmlns:ac="clr-namespace:AdornedControl;assembly=AdornedControl"
+    Title="Smart Trader" Height="800" Width="1000" WindowState="Maximized">
+    <DockPanel>
+        <Grid DockPanel.Dock="Bottom"
+            Height="30"
+            Background="LemonChiffon">
+            <TextBlock x:Name="BottomBanner"
+                Foreground="BlueViolet"
+                FontWeight="Bold"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <TextBlock.Triggers>
+                    <EventTrigger RoutedEvent="Window.Loaded">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <StringAnimationUsingKeyFrames Storyboard.TargetName="BottomBanner"
+                                    Storyboard.TargetProperty="Text"
+                                    RepeatBehavior="Forever"
+                                    AutoReverse="False"
+                                    Duration="0:0:5">
+                                    <DiscreteStringKeyFrame Value="Leverage"
+                                        KeyTime="0:0:0" />
+                                    <DiscreteStringKeyFrame Value="Leverage KE"
+                                        KeyTime="0:0:1" />
+                                    <DiscreteStringKeyFrame Value="Leverage KE Technology"
+                                        KeyTime="0:0:2" />
+                                    <DiscreteStringKeyFrame Value="Leverage KE Technology, Trade"
+                                        KeyTime="0:0:3" />
+                                    <DiscreteStringKeyFrame Value="Leverage KE Technology, Trade Smartly!"
+                                        KeyTime="0:0:4" />
+                                </StringAnimationUsingKeyFrames>
+                                <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Foreground).(SolidColorBrush.Color)"
+                                    Storyboard.TargetName="BottomBanner"
+                                    RepeatBehavior="Forever"
+                                    AutoReverse="True"
+                                    Duration="0:0:5">
+                                    <ColorAnimationUsingKeyFrames.KeyFrames>
+                                        <DiscreteColorKeyFrame KeyTime="0:0:0"
+                                            Value="HotPink" />
+                                        <DiscreteColorKeyFrame KeyTime="0:0:1"
+                                            Value="DodgerBlue" />
+                                        <DiscreteColorKeyFrame KeyTime="0:0:2"
+                                            Value="Orange" />
+                                        <DiscreteColorKeyFrame KeyTime="0:0:3"
+                                            Value="LimeGreen" />
+                                        <DiscreteColorKeyFrame KeyTime="0:0:4"
+                                            Value="BlueViolet" />
+                                    </ColorAnimationUsingKeyFrames.KeyFrames>
+                                </ColorAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </TextBlock.Triggers>
+            </TextBlock>
+        </Grid>
+        <ac:AdornedControl Name="LoadingAdorner">
+            <ac:AdornedControl.AdornerContent>
+                <c:LoadingWait />
+            </ac:AdornedControl.AdornerContent>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="300" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0"
+                    Style="{StaticResource MainBorderStyle}">
+                    <HeaderedContentControl Style="{StaticResource MainHCCStyle}"
+                        MinHeight="300"
+                        Header="Strategy Contriving">
+                        <DockPanel VerticalAlignment="Top"
+                            Margin="10">
+                            <StackPanel DockPanel.Dock="Bottom"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal">
+                                <Button x:Name="BtnStart"
+                                    Content="Start"
+                                    Margin="6"
+                                    Width="100"
+                                    Click="btnStart_Click" />                                
+                            </StackPanel>
+                            <Border Style="{StaticResource MainBorderStyle}"
+                                BorderBrush="{StaticResource Brush_HeaderBackground}"
+                                BorderThickness="2"
+                                Padding="10"
+                                Margin="0">
+                                <Grid x:Name="InputPanel">
+                                    <Grid.Resources>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontSize"
+                                                Value="10" />
+                                            <Setter Property="FontWeight"
+                                                Value="Bold" />
+                                            <Setter Property="TextWrapping"
+                                                Value="Wrap" />
+                                            <Setter Property="HorizontalAlignment"
+                                                Value="Right" />
+                                            <Setter Property="VerticalAlignment"
+                                                Value="Top" />
+                                        </Style>
+                                        <Style TargetType="xceed:IntegerUpDown">
+                                            <Setter Property="Height"
+                                                Value="25" />
+                                        </Style>
+                                        <Style TargetType="ComboBox">
+                                            <Setter Property="Height"
+                                                Value="25" />
+                                        </Style>
+                                        <Style TargetType="xceed:SingleUpDown">
+                                            <Setter Property="Height"
+                                                Value="25" />
+                                        </Style>
+                                        <Style TargetType="Separator">
+                                            <Setter Property="Background"
+                                                Value="DodgerBlue" />
+                                        </Style>                                        
+                                    </Grid.Resources>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="4" />
+                                        <ColumnDefinition Width="2.5*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="6" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="6" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="6" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="6" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0"
+                                        Grid.Column="0"
+                                        Text="Year:" />
+                                    <ComboBox Name="InputYear" Grid.Row="0"
+                                        Grid.Column="2"
+                                        ItemsSource="{Binding Source={x:Static c:ConstantSource.Years}, Mode=OneWay}"
+                                        SelectedIndex="0"
+                                        DisplayMemberPath="."
+                                        SelectedValuePath="."
+                                        HorizontalContentAlignment="Right"
+                                        Foreground="MidnightBlue" />
+                                    <TextBlock Grid.Row="2"
+                                        Grid.Column="0"
+                                        Text="Month:" />
+                                    <ComboBox Name="InputMonth" Grid.Row="2"
+                                        Grid.Column="2"
+                                        ItemsSource="{Binding Source={x:Static c:ConstantSource.Months}, Mode=OneWay}"
+                                        SelectedIndex="0"
+                                        DisplayMemberPath="."
+                                        SelectedValuePath="."
+                                        HorizontalContentAlignment="Right"
+                                        Foreground="MidnightBlue" />
+                                    <TextBlock Grid.Row="4"
+                                        Grid.Column="0"
+                                        Text="Sector:" />
+                                    <xceed:CheckListBox Name="InputSectors" Grid.Row="4"
+                                        Grid.Column="2"
+                                        ItemsSource="{Binding Source={x:Static c:ConstantSource.Sectors}, Mode=OneWay}"
+                                        DisplayMemberPath="."
+                                        ValueMemberPath="."
+                                        HorizontalContentAlignment="Right"
+                                        Foreground="MidnightBlue" />
+                                    <TextBlock Grid.Row="6"
+                                        Grid.Column="0"
+                                        Text="Model(s):" />
+                                    <xceed:CheckListBox Name="InputModels" Grid.Row="6"
+                                        Grid.Column="2"
+                                        ItemsSource="{Binding Source={x:Static c:ConstantSource.Models}, Mode=OneWay}"
+                                        DisplayMemberPath="Value"
+                                        ValueMemberPath="Key"
+                                        HorizontalContentAlignment="Right"
+                                        Foreground="MidnightBlue" />
+                                </Grid>
+                            </Border>
+                        </DockPanel>
+                    </HeaderedContentControl>
+                </Border>
+                <Border Grid.Column="1"
+                    Style="{StaticResource MainBorderStyle}">
+                    <HeaderedContentControl Style="{StaticResource MainHCCStyle}"
+                        MinHeight="300"
+                        Header="Portfolio Recommendation">
+                        <HeaderedContentControl.Resources>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment"
+                                    Value="Center" />
+                                <Setter Property="FontWeight"
+                                    Value="Bold" />
+                                <Setter Property="Foreground"
+                                    Value="SkyBlue" />
+                            </Style>
+                        </HeaderedContentControl.Resources>
+                        <DataGrid Name="GridResult" Margin="30,10"
+                            AutoGenerateColumns="False"
+                            AlternatingRowBackground="Thistle"
+                            AlternationCount="2"
+                            HorizontalAlignment="Stretch"
+                            VerticalScrollBarVisibility="Auto"
+                            MinRowHeight="150"
+                            CanUserAddRows="false">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="{x:Type DataGridColumnHeader}">
+                                    <Setter Property="FontWeight"
+                                        Value="Bold" />
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.CellStyle>
+                                <Style TargetType="{x:Type DataGridCell}">
+                                    <Setter Property="Padding"
+                                        Value="6" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type DataGridCell}">
+                                                <Border Padding="{TemplateBinding Padding}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    Background="{TemplateBinding Background}"
+                                                    SnapsToDevicePixels="True">
+                                                    <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </DataGrid.CellStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Model"
+                                    Width="2*"
+                                    Binding="{Binding Path=ModelDescription}" />
+                                <!--<DataGridTextColumn Header="Year"
+                                    Width="1*"
+                                    Binding="{Binding Path=ForYear}" />
+                                <DataGridTextColumn Header="Month"
+                                    Width="1*"
+                                    Binding="{Binding Path=ForMonth}" />-->
+                                <DataGridTextColumn Header="Sector"
+                                    Width="3*"
+                                    Binding="{Binding Path=Sector}" />
+                                <DataGridTextColumn Header="Accuracy"
+                                    Width="1.5*"
+                                    Binding="{Binding Path=Accuracy, StringFormat=F4}" />
+                                <DataGridTextColumn Header="Sensitivity"
+                                    Width="1.5*"
+                                    Binding="{Binding Path=Sensitivity, StringFormat=F4}" />
+                                <DataGridTextColumn Header="Specificity"
+                                    Width="1.5*"
+                                    Binding="{Binding Path=Specificity, StringFormat=F4}" />
+                                <DataGridTextColumn Header="Precision"
+                                    Width="1.5*"
+                                    Binding="{Binding Path=Precision, StringFormat=F4}" />
+                                <DataGridTemplateColumn Width="5.6*"
+                                    Header="Top Recommendation"                                    
+                                    IsReadOnly="True"
+                                    CanUserResize="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ListView Name="ListViewSecurity" ItemsSource="{Binding Path=TopSecurityList}" DisplayMemberPath="Company">
+                                                <ListView.View>
+                                                    <GridView>
+                                                        <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Path=SecurityId}" Width="50"/>
+                                                        <GridViewColumn Header="SML" DisplayMemberBinding="{Binding Path=SML}" Width="30" />
+                                                        <GridViewColumn Header="Company" DisplayMemberBinding="{Binding Path=Company}" />                                                        
+                                                    </GridView>
+                                                </ListView.View>
+                                            </ListView>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </HeaderedContentControl>
+                </Border>
+            </Grid>
+        </ac:AdornedControl>
+    </DockPanel>
+</Window>
