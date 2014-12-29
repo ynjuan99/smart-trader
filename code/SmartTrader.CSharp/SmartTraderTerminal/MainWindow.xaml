@@ -25,13 +25,13 @@
                                     Duration="0:0:5">
                                     <DiscreteStringKeyFrame Value="Leverage"
                                         KeyTime="0:0:0" />
-                                    <DiscreteStringKeyFrame Value="Leverage KE"
+                                    <DiscreteStringKeyFrame Value="Leverage Data Mining"
                                         KeyTime="0:0:1" />
-                                    <DiscreteStringKeyFrame Value="Leverage KE Technology"
+                                    <DiscreteStringKeyFrame Value="Leverage Data Mining Technology"
                                         KeyTime="0:0:2" />
-                                    <DiscreteStringKeyFrame Value="Leverage KE Technology, Trade"
+                                    <DiscreteStringKeyFrame Value="Leverage Data Mining Technology, Trade Stock"
                                         KeyTime="0:0:3" />
-                                    <DiscreteStringKeyFrame Value="Leverage KE Technology, Trade Smartly!"
+                                    <DiscreteStringKeyFrame Value="Leverage Data Mining Technology, Trade Stock Smartly!"
                                         KeyTime="0:0:4" />
                                 </StringAnimationUsingKeyFrames>
                                 <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Foreground).(SolidColorBrush.Color)"
@@ -93,7 +93,7 @@
                                     <Grid.Resources>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="FontSize"
-                                                Value="10" />
+                                                Value="12" />
                                             <Setter Property="FontWeight"
                                                 Value="Bold" />
                                             <Setter Property="TextWrapping"
@@ -102,19 +102,11 @@
                                                 Value="Right" />
                                             <Setter Property="VerticalAlignment"
                                                 Value="Top" />
-                                        </Style>
-                                        <Style TargetType="xceed:IntegerUpDown">
-                                            <Setter Property="Height"
-                                                Value="25" />
-                                        </Style>
+                                        </Style>                                       
                                         <Style TargetType="ComboBox">
                                             <Setter Property="Height"
-                                                Value="25" />
-                                        </Style>
-                                        <Style TargetType="xceed:SingleUpDown">
-                                            <Setter Property="Height"
-                                                Value="25" />
-                                        </Style>
+                                                Value="30" />
+                                        </Style>                                       
                                         <Style TargetType="Separator">
                                             <Setter Property="Background"
                                                 Value="DodgerBlue" />
@@ -264,8 +256,8 @@
                                             <ListView Name="ListViewSecurity" ItemsSource="{Binding Path=TopSecurityList}" DisplayMemberPath="Company">
                                                 <ListView.View>
                                                     <GridView>
-                                                        <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Path=SecurityId}" Width="50"/>
-                                                        <GridViewColumn Header="SML" DisplayMemberBinding="{Binding Path=SML}" Width="30" />
+                                                        <GridViewColumn Header="ID"  Width="50" DisplayMemberBinding="{Binding Path=SecurityId}"/>
+                                                        <GridViewColumn Header="SML" Width="30" DisplayMemberBinding="{Binding Path=SML}"  />
                                                         <GridViewColumn Header="Company" DisplayMemberBinding="{Binding Path=Company}" />                                                        
                                                     </GridView>
                                                 </ListView.View>
