@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Model;
 using Repository;
@@ -73,6 +72,11 @@ namespace UnitTest
         }
 
         [TestMethod]
+        public void TestWindowedClassificationWithClassifiedOutput2()
+        {
+            TestWindowedClassificationWithClassifiedOutput();
+        }
+        
         public ResultTuple TestWindowedClassificationWithClassifiedOutput()
         {
             var endDay = _defaultTrainingEndDay;
@@ -93,7 +97,7 @@ namespace UnitTest
             Trace.WriteLine("Statistics: " + model.Statistics);
 
             return GetResultTuple(model, _year, _month, _sector);
-        }       
+        }
 
         [TestMethod]
         public void TestPnnClassification()

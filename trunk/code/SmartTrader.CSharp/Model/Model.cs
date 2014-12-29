@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using Repository;
 
 namespace Model
@@ -21,11 +22,33 @@ namespace Model
         public int TrainingSize { get; protected set; }
         public int TestingSize { get; protected set; }
 
-        public double? Accuracy { get; protected set; }
-        //Recall
-        public double? Sensitivity { get; protected set; }
-        public double? Specificity { get; protected set; }
-        public double? Precision { get; protected set; }
+
+        private double? _Accuracy;
+        private double? _Sensitivity;
+        private double? _Specificity;
+        private double? _Precision;
+
+        public double? Accuracy
+        {
+            get { return _Accuracy; }
+            protected set { _Accuracy = EnsureValue(value); }
+        }
+        public double? Sensitivity
+        {
+            get { return _Sensitivity; }
+            protected set { _Sensitivity = EnsureValue(value); }
+        }
+
+        public double? Specificity
+        {
+            get { return _Specificity; }
+            protected set { _Specificity = EnsureValue(value); }
+        }
+        public double? Precision
+        {
+            get { return _Precision; }
+            protected set { _Precision = EnsureValue(value); }
+        }
 
         public string Statistics
         {
@@ -78,5 +101,17 @@ namespace Model
         {
             _stopTraining = true;
         }
+
+        protected static int TopNSecurity
+        {
+            get { return Convert.ToInt32(ConfigurationManager.AppSettings["TopNSecurity"]); }
+        }
+
+        protected double? EnsureValue(double? value)
+        {
+            if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value))) return null;
+            return value;
+        }
+
     }
 }

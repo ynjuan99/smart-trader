@@ -14,12 +14,12 @@ namespace Model
     public interface IClassificationModel : IMeasurement
     {
         IList<DataTuple> TopSecurityList { get; }
+        string ModelName { get; }
     }
 
     public class ClassificationModel : 
         //GeneticNeuroModel 
-        RegressionModel
-        , IClassificationModel
+        RegressionModel, IClassificationModel
     {        
         public ClassificationModel()
         {
@@ -36,6 +36,11 @@ namespace Model
 
         public double[] ClassificationBenchmark { get; set; }
         public IList<DataTuple> TopSecurityList { get; private set; }
+
+        public string ModelName
+        {
+            get { return "Neural Network"; }
+        }
 
         protected internal override double TestInternal(IList<DataTuple> samples)
         {
@@ -83,12 +88,7 @@ namespace Model
             }
 
             return pass;
-        }
-
-        private static int TopNSecurity
-        {
-            get { return Convert.ToInt32(ConfigurationManager.AppSettings["TopNSecurity"]); }
-        }
+        }     
     }
 
     public class ClassificationModelWithClassOutput : ClassificationModel

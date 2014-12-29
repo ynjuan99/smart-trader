@@ -45,11 +45,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\UnitTest\App.config">
-      <Link>App.config</Link>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Repository\Repository.csproj">
       <Project>{B0070AD0-9772-45B2-B9BB-9EEAD6A96640}</Project>
       <Name>Repository</Name>
@@ -58,6 +53,9 @@
       <Project>{5e08db87-de08-4b9e-86e7-84a8f6b6c0a5}</Project>
       <Name>UnitTest</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
