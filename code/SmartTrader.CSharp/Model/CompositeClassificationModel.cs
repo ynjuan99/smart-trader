@@ -49,7 +49,13 @@ namespace Model
             Sensitivity = (double)bothPositive / actualPositive;
             Specificity = (double)bothNegative / actualNegative;
             Precision = (double)bothPositive / predictedPositive;
-
+            TopSecurityList = samples.Where(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive) && o.ClassificationOutputs.Item2.All(p => p == Trend.Positive))
+                .OrderByDescending(o => o.OriginalOutputs[0])
+                .Take(TopNSecurity)
+                .GroupBy(o => o.SecurityId)
+                .Select(o => o.First())
+                .ToList();
+            
             return Accuracy.Value;
         }
 
@@ -61,6 +67,11 @@ namespace Model
         public IList<DataTuple> TopSecurityList
         {
             get; private set; 
+        }
+
+        public string ModelName
+        {
+            get { return "Windowed Neural Network"; }
         }
     }
 }

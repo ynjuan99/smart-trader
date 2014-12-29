@@ -100,7 +100,7 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
                             var inputs = new double[width];
                             for (int i = 3; i < width; i++)
                             {
-                                inputs[i] = Convert.ToDouble(reader[i]);
+                                inputs[i] = reader.IsDBNull(i) ? 0 : Convert.ToDouble(reader[i]);
                             }                            
                             double actualTarget = Convert.ToDouble(reader["PriceRetFF20D"]);
                             var outputs = new[] { actualTarget };
@@ -125,10 +125,12 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
 
         public static IList<SecurityInfo> GetSecurityList(params int[] securityIds)
         {
+            var result = new List<SecurityInfo>();
+            if (securityIds.Length == 0) return result;
+
             string sql = string.Format("SELECT SecId, CompanyName AS Company, GICS_SEC AS Sector, SML FROM tb_SecurityMaster WHERE SecId IN ({0})",
                 string.Join(",", securityIds));
 
-            var result = new List<SecurityInfo>();
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
@@ -152,21 +154,89 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
             return result;
         }
 
+        private static readonly Lazy<Dictionary<int, DateTime>> TargetDate = new Lazy<Dictionary<int, DateTime>>(
+            () =>
+            {
+                string sql = "SELECT CalendarDate FROM tb_Calendar WHERE IsBizMonthEnd = 1 ORDER BY CalendarDate";
+                var dictionary = new Dictionary<int, DateTime>(204);
+                using (var conn = new SqlConnection(ConnectionString))
+                {
+                    conn.Open();
+                    var cmd = new SqlCommand(sql, conn);
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        var date = Convert.ToDateTime(reader[0]);
+                        dictionary.Add(date.Year * 100 + date.Month, date);
+                    }
+                }
+                return dictionary;
+            }
+            );
+
         public static DateTime GetTargetDate(int year, int month)
         {
-            string sql = string.Format(@"
-SELECT CalendarDate FROM tb_Calendar 
-WHERE IsBizMonthEnd = 1 AND YEAR(CalendarDate) = {0} AND MONTH(CalendarDate) = {1}", year, month);
+            return TargetDate.Value[year * 100 + month];
+        }
 
-            DateTime targetDate;
+        public static void PersistResultTuple(ResultTuple data)
+        {
+            string sql = string.Format(@"
+INSERT tb_ModelResult(ModelName, Sector, ForYear, ForMonth, Accuracy, Sensitivity, Specificity, Precision, Top10SecurityIds)
+VALUES('{0}', '{1}', {2}, {3}, {4}, {5}, {6}, {7}, '{8}')
+", data.Model, data.Sector, data.ForYear, data.ForMonth, 
+ data.Accuracy.HasValue ? data.Accuracy.ToString() : "NULL",
+ data.Sensitivity.HasValue ? data.Sensitivity.ToString() : "NULL",
+ data.Specificity.HasValue ? data.Specificity.ToString() : "NULL",
+ data.Precision.HasValue ? data.Precision.ToString() : "NULL", 
+ string.Join(",", data.TopSecurityList.Select(o => o.SecurityId).ToArray()));
+
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
                 var cmd = new SqlCommand(sql, conn);
-                targetDate = (DateTime)cmd.ExecuteScalar();                               
+                cmd.ExecuteNonQuery();
+            } 
+        }
+       
+        public IList<ResultTuple> RetrieveResultTuple(string model, string sector, int year, int month)
+        {
+            string sql = string.Format(@"
+SELECT ModelName, Sector, ForYear, ForMonth, Accuracy, Sensitivity, Specificity, Precision, Top10SecurityIds 
+FROM tb_ModelResult 
+WHERE ForYear = {0} AND ForMonth = {1}", year, month);
+            if (!string.IsNullOrWhiteSpace(model)) sql += string.Format(" AND ModelName LIKE '%{0}%'", model.Trim());
+            if (!string.IsNullOrWhiteSpace(sector)) sql += string.Format(" AND Sector LIKE '%{0}%'", sector.Trim());
+
+            var result = new List<ResultTuple>();
+            using (var conn = new SqlConnection(ConnectionString))
+            {
+                conn.Open();
+                var cmd = new SqlCommand(sql, conn);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var data = new ResultTuple
+                        {
+                            Model = Convert.ToString(reader[0]),
+                            Sector = Convert.ToString(reader[1]),
+                            ForYear = Convert.ToInt32(reader[2]),
+                            ForMonth = Convert.ToInt32(reader[3]),
+                            Accuracy = Convert.ToDouble(reader[4]),
+                            Sensitivity = Convert.ToDouble(reader[5]),
+                            Specificity = Convert.ToDouble(reader[6]),
+                            Precision = Convert.ToDouble(reader[7])                            
+                        };
+                        var ids = Convert.ToString(reader[8]).Split(',').Select(o => Convert.ToInt32(o)).ToArray();                      
+                        data.TopSecurityList = GetSecurityList(ids);
+
+                        result.Add(data);
+                    }
+                }
             }
 
-            return targetDate;
+            return result;
         }
     }
 }
