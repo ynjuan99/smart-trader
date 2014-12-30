@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 
@@ -134,20 +135,18 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
-                var cmd = new SqlCommand(sql, conn);
-                using (var reader = cmd.ExecuteReader())
+                var adapter = new SqlDataAdapter(sql, conn);
+                var table = new DataTable();
+                foreach (DataRow row in table.Rows)
                 {
-                    while (reader.Read())
+                    var stockInfo = new SecurityInfo
                     {
-                        var stockInfo = new SecurityInfo
-                        {
-                            SecurityId = Convert.ToInt32(reader[0]),
-                            Company = Convert.ToString(reader[1]),
-                            Sector = Convert.ToString(reader[2]),
-                            SML = Convert.ToString(reader[3])
-                        };
-                        result.Add(stockInfo);
-                    }
+                        SecurityId = row.Field<int>(0),
+                        Company = row.Field<string>(1),
+                        Sector = row.Field<string>(2),
+                        SML = row.Field<string>(3)
+                    };
+                    result.Add(stockInfo);
                 }
             }
 
@@ -183,18 +182,23 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
         {
             string sql = string.Format(@"
 INSERT tb_ModelResult(ModelName, Sector, ForYear, ForMonth, Accuracy, Sensitivity, Specificity, Precision, Top10SecurityIds)
-VALUES('{0}', '{1}', {2}, {3}, {4}, {5}, {6}, {7}, '{8}')
-", data.Model, data.Sector, data.ForYear, data.ForMonth, 
- data.Accuracy.HasValue ? data.Accuracy.ToString() : "NULL",
- data.Sensitivity.HasValue ? data.Sensitivity.ToString() : "NULL",
- data.Specificity.HasValue ? data.Specificity.ToString() : "NULL",
- data.Precision.HasValue ? data.Precision.ToString() : "NULL", 
- string.Join(",", data.TopSecurityList.Select(o => o.SecurityId).ToArray()));
+VALUES(@q0, @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8)");
+            var cmd = new SqlCommand(sql);
+            cmd.Parameters.AddWithValue("@q0", data.Model);
+            cmd.Parameters.AddWithValue("@q1", data.Sector);
+            cmd.Parameters.AddWithValue("@q2", data.ForYear);
+            cmd.Parameters.AddWithValue("@q3", data.ForMonth);
+            cmd.Parameters.AddWithValue("@q4", data.Accuracy ?? DBNull.Value as object);
+            cmd.Parameters.AddWithValue("@q5", data.Sensitivity ?? DBNull.Value as object);
+            cmd.Parameters.AddWithValue("@q6", data.Specificity ?? DBNull.Value as object);
+            cmd.Parameters.AddWithValue("@q7", data.Precision ?? DBNull.Value as object);
+            cmd.Parameters.AddWithValue("@q8", data.TopSecurityList == null || data.TopSecurityList.Count == 0 ? (object)DBNull.Value
+                : string.Join(",", data.TopSecurityList.Select(o => o.SecurityId).ToArray()));
 
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
-                var cmd = new SqlCommand(sql, conn);
+                cmd.Connection = conn;
                 cmd.ExecuteNonQuery();
             } 
         }
@@ -220,26 +224,32 @@ WHERE ForYear = {0} AND ForMonth = {1}", year, month);
             {
                 conn.Open();
                 var cmd = new SqlCommand(sql, conn);
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var data = new ResultTuple
-                        {
-                            Model = Convert.ToString(reader[0]),
-                            Sector = Convert.ToString(reader[1]),
-                            ForYear = Convert.ToInt32(reader[2]),
-                            ForMonth = Convert.ToInt32(reader[3]),
-                            Accuracy = Convert.ToDouble(reader[4]),
-                            Sensitivity = Convert.ToDouble(reader[5]),
-                            Specificity = Convert.ToDouble(reader[6]),
-                            Precision = Convert.ToDouble(reader[7])                            
-                        };
-                        var ids = Convert.ToString(reader[8]).Split(new [] {","}, StringSplitOptions.RemoveEmptyEntries).Select(o => Convert.ToInt32(o)).ToArray();                      
-                        data.TopSecurityList = GetSecurityList(ids);
+                var adapter = new SqlDataAdapter(sql, conn);
+                var table = new DataTable();
+                adapter.Fill(table);
 
-                        result.Add(data);
+                foreach (DataRow row in table.Rows)
+                {
+                    var data = new ResultTuple
+                    {
+                        Model = row.Field<string>(0),
+                        Sector = row.Field<string>(1),
+                        ForYear = row.Field<int>(2),
+                        ForMonth = row.Field<int>(3),
+                        Accuracy = row.Field<double?>(4),
+                        Sensitivity = row.Field<double?>(5),
+                        Specificity = row.Field<double?>(6),
+                        Precision = row.Field<double?>(7)
+                    };
+
+                    var idString = row.Field<string>(8);
+                    if (!string.IsNullOrWhiteSpace(idString))
+                    {
+                        var ids = idString.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries).Select(o => Convert.ToInt32(o)).ToArray();
+                        data.TopSecurityList = GetSecurityList(ids);                        
                     }
+
+                    result.Add(data);
                 }
             }
 
