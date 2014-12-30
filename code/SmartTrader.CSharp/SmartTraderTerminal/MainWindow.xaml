@@ -25,13 +25,13 @@
                                     Duration="0:0:5">
                                     <DiscreteStringKeyFrame Value="Leverage"
                                         KeyTime="0:0:0" />
-                                    <DiscreteStringKeyFrame Value="Leverage Data Mining"
+                                    <DiscreteStringKeyFrame Value="Leverage Computational"
                                         KeyTime="0:0:1" />
-                                    <DiscreteStringKeyFrame Value="Leverage Data Mining Technology"
+                                    <DiscreteStringKeyFrame Value="Leverage Computational Intelligence"
                                         KeyTime="0:0:2" />
-                                    <DiscreteStringKeyFrame Value="Leverage Data Mining Technology, Trade Stock"
+                                    <DiscreteStringKeyFrame Value="Leverage Computational Intelligence, Trade Stock"
                                         KeyTime="0:0:3" />
-                                    <DiscreteStringKeyFrame Value="Leverage Data Mining Technology, Trade Stock Smartly!"
+                                    <DiscreteStringKeyFrame Value="Leverage Computational Intelligence, Trade Stock Smartly and Fruitfully!"
                                         KeyTime="0:0:4" />
                                 </StringAnimationUsingKeyFrames>
                                 <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Foreground).(SolidColorBrush.Color)"
