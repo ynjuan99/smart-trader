@@ -207,6 +207,8 @@
                                 <Style TargetType="{x:Type DataGridCell}">
                                     <Setter Property="Padding"
                                         Value="6" />
+                                    <Setter Property="FontSize"
+                                        Value="9" />
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="{x:Type DataGridCell}">
@@ -225,7 +227,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Model"
                                     Width="2*"
-                                    Binding="{Binding Path=ModelDescription}" />
+                                    Binding="{Binding Path=ModelDescription}" FontWeight="Bold" />
                                 <!--<DataGridTextColumn Header="Year"
                                     Width="1*"
                                     Binding="{Binding Path=ForYear}" />
@@ -257,7 +259,7 @@
                                                 <ListView.View>
                                                     <GridView>
                                                         <GridViewColumn Header="ID"  Width="50" DisplayMemberBinding="{Binding Path=SecurityId}"/>
-                                                        <GridViewColumn Header="SML" Width="30" DisplayMemberBinding="{Binding Path=SML}"  />
+                                                        <GridViewColumn Header="SML" Width="50" DisplayMemberBinding="{Binding Path=SML}"  />
                                                         <GridViewColumn Header="Company" DisplayMemberBinding="{Binding Path=Company}" />                                                        
                                                     </GridView>
                                                 </ListView.View>

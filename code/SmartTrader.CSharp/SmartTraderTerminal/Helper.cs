@@ -27,7 +27,7 @@ namespace SmartTraderTerminal
             { "AdaBoost", "Ada Boost" },
             { "NN", "Neural Network" },            
             { "RF", "Random Forest" },
-            { "SVN", "Support Vector Machine" }
+            { "SVM", "Support Vector Machine" }
         };
 
         private static readonly int[] _Years = Enumerable.Range(2004, 11).ToArray();
