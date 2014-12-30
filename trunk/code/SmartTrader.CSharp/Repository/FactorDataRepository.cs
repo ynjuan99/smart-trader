@@ -35,6 +35,7 @@ namespace Repository
         private static IList<DataTuple> GetData(int samplePercentage, string filter)
         {
             #region Script
+
             string sampling = (samplePercentage > 0 && samplePercentage < 100)
                 ? string.Format(" TABLESAMPLE ({0} PERCENT) ", samplePercentage)
                 : string.Empty;
@@ -81,6 +82,7 @@ PriceRetFF20D_Absolute
 FROM    dbo.tb_FactorScore {0} 
 WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
 ", sampling, filterClause);
+
             #endregion
 
             var result = new List<DataTuple>(15000);
@@ -102,10 +104,10 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
                             for (int i = 3; i < width; i++)
                             {
                                 inputs[i] = reader.IsDBNull(i) ? 0 : Convert.ToDouble(reader[i]);
-                            }                            
+                            }
                             double actualTarget = Convert.ToDouble(reader["PriceRetFF20D"]);
                             var outputs = new[] { actualTarget };
-                            
+
                             var tuple = new DataTuple(date, securityId, sector, inputs, outputs);
                             result.Add(tuple);
                         }
@@ -126,8 +128,7 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
 
         public static IList<SecurityInfo> GetSecurityList(params int[] securityIds)
         {
-            var result = new List<SecurityInfo>();
-            if (securityIds.Length == 0) return result;
+            if (securityIds.Length == 0) return new List<SecurityInfo>();
 
             string sql = string.Format("SELECT SecId, CompanyName AS Company, GICS_SEC AS Sector, SML FROM tb_SecurityMaster WHERE SecId IN ({0})",
                 string.Join(",", securityIds));
@@ -137,24 +138,20 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
                 conn.Open();
                 var adapter = new SqlDataAdapter(sql, conn);
                 var table = new DataTable();
-                foreach (DataRow row in table.Rows)
-                {
-                    var stockInfo = new SecurityInfo
+                adapter.Fill(table);
+                return table.Rows.Cast<DataRow>().Select(row =>
+                    new SecurityInfo
                     {
                         SecurityId = row.Field<int>(0),
                         Company = row.Field<string>(1),
                         Sector = row.Field<string>(2),
                         SML = row.Field<string>(3)
-                    };
-                    result.Add(stockInfo);
-                }
+                    }).ToList();
             }
-
-            return result;
         }
 
-        private static readonly Lazy<Dictionary<int, DateTime>> TargetDate = new Lazy<Dictionary<int, DateTime>>(
-            () =>
+        private static readonly Lazy<Dictionary<int, DateTime>> TargetDate =
+            new Lazy<Dictionary<int, DateTime>>(() =>
             {
                 string sql = "SELECT CalendarDate FROM tb_Calendar WHERE IsBizMonthEnd = 1 ORDER BY CalendarDate";
                 var dictionary = new Dictionary<int, DateTime>(204);
@@ -170,8 +167,7 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
                     }
                 }
                 return dictionary;
-            }
-            );
+            });
 
         public static DateTime GetTargetDate(int year, int month)
         {
@@ -200,9 +196,9 @@ VALUES(@q0, @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8)");
                 conn.Open();
                 cmd.Connection = conn;
                 cmd.ExecuteNonQuery();
-            } 
+            }
         }
-       
+
         public static List<ResultTuple> RetrieveResultTuple(int year, int month, string[] models, string[] sectors)
         {
             string sql = string.Format(@"
@@ -218,7 +214,7 @@ WHERE ForYear = {0} AND ForMonth = {1}", year, month);
                 sql += string.Format(" AND Sector IN ({0})", string.Join(",", sectors.Select(o => string.Format("'{0}'", o))));
             }
 
-			sql += " ORDER BY ModelName, Sector, ForYear, ForMonth";
+            sql += " ORDER BY ModelName, Sector, ForYear, ForMonth";
             var result = new List<ResultTuple>();
             using (var conn = new SqlConnection(ConnectionString))
             {
@@ -246,7 +242,7 @@ WHERE ForYear = {0} AND ForMonth = {1}", year, month);
                     if (!string.IsNullOrWhiteSpace(idString))
                     {
                         var ids = idString.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries).Select(o => Convert.ToInt32(o)).ToArray();
-                        data.TopSecurityList = GetSecurityList(ids);                        
+                        data.TopSecurityList = GetSecurityList(ids);
                     }
 
                     result.Add(data);
