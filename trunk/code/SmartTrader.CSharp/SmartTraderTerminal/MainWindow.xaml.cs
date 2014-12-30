@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,8 +46,13 @@ namespace SmartTraderTerminal
 
         private async Task<List<ResultTuple>> LoadResult(int year, int month, string[] models, string[] sectors)
         {
-            await Task.Delay(1000);
+            await Task.Delay(1000 * DisplayDelaySeconds);
             return FactorDataRepository.RetrieveResultTuple(year, month, models, sectors);
+        }
+
+        private int DisplayDelaySeconds
+        {
+            get { return Convert.ToInt32(ConfigurationManager.AppSettings["DisplayDelaySeconds"]); }        
         }
     }    
 }

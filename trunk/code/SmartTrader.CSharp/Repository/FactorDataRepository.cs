@@ -130,7 +130,7 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
         {
             if (securityIds.Length == 0) return new List<SecurityInfo>();
 
-            string sql = string.Format("SELECT SecId, CompanyName AS Company, GICS_SEC AS Sector, SML FROM tb_SecurityMaster WHERE SecId IN ({0})",
+            string sql = string.Format("SELECT SecId, CompanyName AS Company, GICS_SEC AS Sector, SML FROM tb_SecurityMaster WHERE SecId IN ({0}) ORDER BY CompanyName",
                 string.Join(",", securityIds));
 
             using (var conn = new SqlConnection(ConnectionString))
