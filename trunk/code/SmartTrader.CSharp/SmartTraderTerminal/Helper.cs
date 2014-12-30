@@ -25,9 +25,9 @@ namespace SmartTraderTerminal
         private static readonly Dictionary<string, string> _Models = new Dictionary<string, string>
         {
             { "AdaBoost", "Ada Boost" },
-            { "NN", "Neural Network" },
-            { "SVN", "Support Vector Machine" },
-            { "RF", "Random Forest" }
+            { "NN", "Neural Network" },            
+            { "RF", "Random Forest" },
+            { "SVN", "Support Vector Machine" }
         };
 
         private static readonly int[] _Years = Enumerable.Range(2004, 11).ToArray();
