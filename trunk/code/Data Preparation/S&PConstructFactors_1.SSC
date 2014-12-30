@@ -1,0 +1,913 @@
+remove(ls())
+options(stringsAsFactors=F)
+library(hmisc)
+
+source("C:/SQTS/Lib/S/S&PSYSdata.ssc");
+source("C:/SQTS/Lib/S/QuantGenericSP.ssc");
+
+module(finmetrics)
+
+SYS.DirData="C:\\"
+
+#SP400=importData("C:/S&P400.xls",colNameRow=3,startRow=5)
+#SP400=SP400[,c(1:8)]
+#SP400=data.frame(SP400,"SML"="M")
+#SP400=SP400[order(SP400$CompanySymbol),]
+
+#SP500=importData("C:/S&P500.xls",colNameRow=3,startRow=5)
+#SP500=SP500[,c(1:8)]
+#SP500=data.frame(SP500,"SML"="L")
+#SP500=SP500[order(SP500$CompanySymbol),]
+
+#SP600=importData("C:/S&P600.xls",colNameRow=3,startRow=5)
+#SP600=SP600[,c(1:8)]
+#SP600=data.frame(SP600,"SML"="S")
+#SP600=SP600[order(SP600$CompanySymbol),]
+
+#AllNames=rbind(SP500,SP400,SP600)
+#AllNames=data.frame("SecId"=1:1499, AllNames)
+
+#names(AllNames)=c("SecId","BBTicker","CompanyName","Sedol","Isin","GICS.SEC","GICS.GRP","GICS.IND","GICS.SUB","SML")
+#exportData(AllNames,type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcTable="tb_SecurityMaster",appendToTable = T);
+
+#Universe=importData(paste("C:/S&P1500Universe", ".xlsx", sep=""))
+#names(Universe)=c("SecId","BBTicker","CompanyName","Sedol","Isin","GICS.SEC","GICS.GRP","GICS.IND","GICS.SUB","SML")
+#Universe=Universe[1:1500,]
+#exportData(Universe,type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcTable="tb_SecurityMaster",appendToTable = T);
+
+#FactorTable=importData(type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcSqlQuery =paste("SELECT FID, FACTOR FROM DBO.TB_FACTOR",sep=""),rowNamesCol=2);
+FactorTable=importData(type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcSqlQuery =paste("SELECT FID, FACTOR FROM DBO.TB_FACTOR where fid>=2000",sep=""),rowNamesCol=2);
+row.names(FactorTable)
+#PARM.factors=c(1:14,2001:2106)
+
+PARM.dtfr='20031231'
+PARM.dtto='20041231'
+
+CrossDates=importData(type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcSqlQuery =paste("SELECT YYYYMMDD FROM DBO.TB_CALENDAR WHERE CALENDARDATE >='",PARM.dtfr,"' AND CALENDARDATE<='",PARM.dtto,"' and DayOfWeek>1 and DayOfWeek<7",sep=""))[,,drop=T];
+CrossDates=as.character(CrossDates)
+
+#crossdt="20040401"
+
+x=sapply(CrossDates, function (crossdt) {
+
+  	SPData=importData(paste("F:/Data/S&P/S&P", crossdt, ".xls", sep=""),colNameRow=3,startRow=5)
+  	names(SPData)=c("Symbol","CompanyName","Sedol","Isin","Sector","IndustryGrp", "Industry","SubIndustry", names(SPData)[9:ncol(SPData)])
+
+	SPData$EC.DATEN=rep(DBDate(crossdt,"DT"),nrow(SPData))
+
+  	now=proc.time()[3]
+
+  	cat(paste("\n","--------------------------------------------------------------------------------------",sep=""));
+  	cat(paste("\n",substring(date(),5,19)," ::::: Factor Construction for Crossection of Universe as of ",crossdt,sep=""));
+ 
+	now2=proc.time()[3]-now
+	#  cat("|ImportReads=",now2,sep="")
+	now2=proc.time()[3]
+
+############################### Begin creating factors #########################
+
+  #-----------------------------------------------------------------------
+  #Read Alpha Module from Database
+  #--------------------
+    #if(any(PARM.factors %in% MFactors)) {    
+    #M<- importData(type="ODBC", odbcConnection=SYS.ODBCconn,odbcSqlQuery =paste("Select * from SQTS.dbo.fn_GetFactorData('",crossdt,"')",sep=""),rowNamesCol=1);
+    #dimnames(M)[[2]]<-unpaste(dimnames(M)[[2]],"X")[[2]];
+    #dimnames(M)[[2]]=row.names(FactorTable)[which(FactorTable[,1]%in%dimnames(M)[[2]])];
+    #CURR   <- importData(type="ODBC", odbcConnection=SYS.ODBCconn,odbcSqlQuery =paste("SELECT SECID, CURR_IBES CURR FROM SQTS.DBO.TB_SECURITYHISTORY WHERE DATE='",crossdt,"'",sep=""),rowNamesCol=1);
+    #ADJPRC <- ifelse(CURR=="USD",M[,"PRICEUSD"],M[,"PRICELOCAL"])+impute(M[,"DPS"],0);
+    #}
+  
+  #----------------------------------------------------------------------#
+  # INITIALIZE FACTOR MATRIX					         #
+  #----------------------------------------------------------------------#
+
+    M=importData(type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcSqlQuery ="SELECT [SecId] SECID,[CompanyName],[SML],[Sedol],[BBTicker] Symbol,[Isin] FROM [dbo].[tb_SecurityMaster]");
+    M=M[,c("SECID","Symbol","SML")]
+
+	SPData=merge(SPData,M,by="Symbol")
+	row.names(SPData)=SPData$SECID;
+   
+	SPData=SPData[order(SPData$SML,SPData$Sector),] 
+	#FACT=data.frame("SECID"=SPData$SECID);
+   #row.names(FACT)=SPData$SECID;
+
+ #--------------------------------------------------------------------------------#
+  # Calc Initial Factors 													   	   		    #
+  #--------------------------------------------------------------------------------#
+
+  #-------------------------------------------------#
+  # FID = 4, Total Return 1D		      	           #
+  #-------------------------------------------------#
+
+	SPData$TotRet1D=SPData[,"PriceRet1D"] + SPData[,"DividendPS"]/SPData[,"PriceClose"]
+
+  #--------------------------------------------------------------------------------#
+  # Calc Actual Factors 													   	   		    #
+  #--------------------------------------------------------------------------------#
+
+  # 1. Valuations
+
+  #-------------------------------------------------#
+  # FID = 2001, Book Yield Mean FY1					 #
+  #-------------------------------------------------#
+	
+	SPData$BookYieldFY1=SPData[,"BPSMeanFY1"]/SPData[,"PriceClose"] * 100
+	
+  #-------------------------------------------------#
+  # FID = 2002, Dividend Yield Mean FY0			    #
+  #-------------------------------------------------#
+
+	SPData$DividendYieldFY0=SPData[,"DPSMeanFY0"]/SPData[,"PriceClose"] * 100
+ 
+  #-------------------------------------------------#
+  # FID = 2003, Dividend Yield Mean FY1			    #
+  #-------------------------------------------------#
+
+	SPData$DividendYieldFY1=SPData[,"DPSMeanFY1"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2004, Dividend Yield Mean FY2			    #
+  #-------------------------------------------------#
+
+	SPData$DividendYieldFY2=SPData[,"DPSMeanFY2"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2005, Earnings Yield Mean FY0			    #
+  #-------------------------------------------------#
+	
+	SPData$EarningsYieldFY0=SPData[,"EPSMeanFY0"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2006, Earnings Yield Mean FY1			    #
+  #-------------------------------------------------#
+
+	SPData$EarningsYieldFY1=SPData[,"EPSMeanFY1"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2007, Earnings Yield Mean FY2			    #
+  #-------------------------------------------------#
+
+	SPData$EarningsYieldFY2=SPData[,"EPSMeanFY2"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2008, EBITDA Yield Mean FY0				    #
+  #-------------------------------------------------#
+
+	SPData$EBITDAYieldFY0=SPData[,"EBITDAMeanFY0"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2009, EBITDA Yield Mean FY1				    #
+  #-------------------------------------------------#
+
+	SPData$EBITDAYieldFY1=SPData[,"EBITDAMeanFY1"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2010, EBITDA Yield Mean FY2				    #
+  #-------------------------------------------------#
+
+	SPData$EBITDAYieldFY2=SPData[,"EBITDAMeanFY2"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2011, Sales Yield Mean FY0			    #
+  #-------------------------------------------------#
+
+	SPData$SalesYieldFY0=SPData[,"SalesPSMeanFY0"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2012, Sales Yield Mean FY1				    #
+  #-------------------------------------------------#
+	
+	SPData$SalesYieldFY1=SPData[,"SalesPSMeanFY1"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2013, Sales Yield Mean FY2				    #
+  #-------------------------------------------------#
+
+	SPData$SalesYieldFY2=SPData[,"SalesPSMeanFY2"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2014, EV_EBIT Mean Next 12M 			    #
+  #-------------------------------------------------#
+
+	SPData$EBIT.EV.NTM=1/SPData[,"EV.EBITMeanF12M"] * 100
+	SPData$EBIT.EV.NTM[SPData$EBIT.EV.NTM %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2015, EV_EBITDA Mean Next 12M 			    #
+  #-------------------------------------------------#
+
+   SPData$EBITDA.EV.NTM=1/SPData[,"EV.EBITDAMeanF12M"] * 100
+   SPData$EBITDA.EV.NTM[SPData$EBITDA.EV.NTM %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2016, EV_SALES Mean Next 12M 			    #
+  #-------------------------------------------------#
+	
+	SPData$SALES.EV.NTM=1/SPData[,"EV.SalesMeanF12M"] * 100
+	SPData$SALES.EV.NTM[SPData$SALES.EV.NTM %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2017, PEG Mean FY1		     			    #
+  #-------------------------------------------------#
+
+	SPData$PEGFY1=1/SPData[,"PEGMean"]
+	SPData$PEGFY1[SPData$PEGFY1 %in% c("Inf","-Inf")]=NA
+	
+  #-------------------------------------------------#
+  # FID = 2018, Earnings Yield Past 1 Year		    #
+  #-------------------------------------------------#
+
+	SPData$EarningsYield1Y=SPData[,"EPSPast"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2019, Free Cash Flow Yield Past 1 Year    #
+  #-------------------------------------------------#
+
+	SPData$FCFYield1Y=SPData[,"FCFPSPast"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2020, Sales Yield Past 1 Year		    #
+  #-------------------------------------------------#
+
+	SPData$SalesYield1Y=SPData[,"SalesPSPast"]/SPData[,"PriceClose"] * 100
+
+  #-------------------------------------------------#
+  # FID = 2021, EV_EBIT Past 1 Year				    #
+  #-------------------------------------------------#
+
+	SPData$EBIT.EV1Y=1/SPData[,"EV.EBIT.12M."] * 100
+	SPData$EBIT.EV1Y[SPData$EBIT.EV1Y %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2022, EV_EBITDA Past 1 Year				    #
+  #-------------------------------------------------#
+
+	SPData$EBITDA.EV1Y=1/SPData[,"EV.EBITDA.12M."] * 100
+	SPData$EBITDA.EV1Y[SPData$EBITDA.EV1Y %in% c("Inf","-Inf")]=NA
+
+  # 2. Revisions/Earning Var
+
+  #-------------------------------------------------#
+  # FID = 2025, Book Revision past 1 months         #
+  #-------------------------------------------------#
+
+	SPData$BookRevFY1.1M=(SPData[,"BPSMeanFY1"]-SPData[,"BPSMeanFY1Last1M"])/abs(SPData[,"BPSMeanFY1Last1M"])	* 100
+	SPData$BookRevFY1.1M[SPData$BookRevFY1.1M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2026, Book Revision past 3 months         #
+  #-------------------------------------------------#
+
+	SPData$BookRevFY1.3M=(SPData[,"BPSMeanFY1"]-SPData[,"BPSMeanFY1Last3M"])/abs(SPData[,"BPSMeanFY1Last3M"])	* 100
+	SPData$BookRevFY1.3M[SPData$BookRevFY1.3M %in% c("Inf","-Inf")]=NA
+	
+  #-------------------------------------------------#
+  # FID = 2027, Book Revision past 6 months         #
+  #-------------------------------------------------#
+
+	SPData$BookRevFY1.6M=(SPData[,"BPSMeanFY1"]-SPData[,"BPSMeanFY1Last6M"])/abs(SPData[,"BPSMeanFY1Last6M"]) * 100
+	SPData$BookRevFY1.6M[SPData$BookRevFY1.6M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2028, Dividend Revision past 1 month      #
+  #-------------------------------------------------#
+
+	SPData$DivRevFY1.1M=(SPData[,"DPSMeanFY1"]-SPData[,"DPSMeanFY1Last1M"])/abs(SPData[,"DPSMeanFY1Last1M"]) * 100
+	SPData$DivRevFY1.1M[SPData$DivRevFY1.1M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2029, Dividend Revision past 3 months     #
+  #-------------------------------------------------#
+
+	SPData$DivRevFY1.3M=(SPData[,"DPSMeanFY1"]-SPData[,"DPSMeanFY1Last3M"])/abs(SPData[,"DPSMeanFY1Last3M"]) * 100
+	SPData$DivRevFY1.3M[SPData$DivRevFY1.3M %in% c("Inf","-Inf")]=NA
+	
+  #-------------------------------------------------#
+  # FID = 2030, Dividend Revision past 6 months     #
+  #-------------------------------------------------#
+
+	SPData$DivRevFY1.6M=(SPData[,"DPSMeanFY1"]-SPData[,"DPSMeanFY1Last6M"])/abs(SPData[,"DPSMeanFY1Last6M"]) * 100
+	SPData$DivRevFY1.6M[SPData$DivRevFY1.6M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2031, Earnings Revision past 1 month      #
+  #-------------------------------------------------#
+
+	SPData$EarningsRevFY1.1M=(SPData[,"EPSMeanFY1"]-SPData[,"EPSMeanFY1Last1M"])/abs(SPData[,"EPSMeanFY1Last1M"]) * 100
+	SPData$EarningsRevFY1.1M[SPData$EarningsRevFY1.1M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2032, Earnings Revision past 3 months     #
+  #-------------------------------------------------#
+
+	SPData$EarningsRevFY1.3M=(SPData[,"EPSMeanFY1"]-SPData[,"EPSMeanFY1Last3M"])/abs(SPData[,"EPSMeanFY1Last3M"]) * 100
+	SPData$EarningsRevFY1.3M[SPData$EarningsRevFY1.3M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2033, Earnings Revision past 6 months     #
+  #-------------------------------------------------#
+
+	SPData$EarningsRevFY1.6M=(SPData[,"EPSMeanFY1"]-SPData[,"EPSMeanFY1Last6M"])/abs(SPData[,"EPSMeanFY1Last6M"]) * 100
+	SPData$EarningsRevFY1.6M[SPData$EarningsRevFY1.6M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2034, EBITDA Revision past 1 month        #
+  #-------------------------------------------------#
+
+	SPData$EBITDARevFY1.1M=(SPData[,"EBITDAMeanFY1"]-SPData[,"EBITDAMeanFY1Last1M"])/abs(SPData[,"EBITDAMeanFY1Last1M"]) * 100
+	SPData$EBITDARevFY1.1M[SPData$EBITDARevFY1.1M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2035, EBITDA Revision past 3 months       #
+  #-------------------------------------------------#
+
+	SPData$EBITDARevFY1.3M=(SPData[,"EBITDAMeanFY1"]-SPData[,"EBITDAMeanFY1Last3M"])/abs(SPData[,"EBITDAMeanFY1Last3M"]) * 100
+	SPData$EBITDARevFY1.3M[SPData$EBITDARevFY1.3M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2036, EBITDA Revision past 6 months       #
+  #-------------------------------------------------#
+
+	SPData$EBITDARevFY1.6M=(SPData[,"EBITDAMeanFY1"]-SPData[,"EBITDAMeanFY1Last6M"])/abs(SPData[,"EBITDAMeanFY1Last6M"]) * 100
+	SPData$EBITDARevFY1.6M[SPData$EBITDARevFY1.6M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2037, Sales Revision past 1 month	  		#
+  #-------------------------------------------------#
+
+	SPData$SalesRevFY1.1M=(SPData[,"SalesPSMeanFY1"]-SPData[,"SalesPSMeanFY1Last1M"])/abs(SPData[,"SalesPSMeanFY1Last1M"]) * 100
+	SPData$SalesRevFY1.1M[SPData$SalesRevFY1.1M %in% c("Inf","-Inf")]=NA
+	
+  #-------------------------------------------------#
+  # FID = 2038, Sales Revision past 3 months        #
+  #-------------------------------------------------#
+
+	SPData$SalesRevFY1.3M=(SPData[,"SalesPSMeanFY1"]-SPData[,"SalesPSMeanFY1Last3M"])/abs(SPData[,"SalesPSMeanFY1Last3M"]) * 100
+	SPData$SalesRevFY1.3M[SPData$SalesRevFY1.3M %in% c("Inf","-Inf")]=NA
+	
+  #-------------------------------------------------#
+  # FID = 2039, Sales Revision past 6 months     #
+  #-------------------------------------------------#
+
+	SPData$SalesRevFY1.6M=(SPData[,"SalesPSMeanFY1"]-SPData[,"SalesPSMeanFY1Last6M"])/abs(SPData[,"SalesPSMeanFY1Last6M"]) * 100
+	SPData$SalesRevFY1.6M[SPData$SalesRevFY1.6M %in% c("Inf","-Inf")]=NA
+
+########
+
+  #-------------------------------------------------#
+  # FID = 2040, Net Margin Revision past 1 month	#
+  #-------------------------------------------------#
+
+	SPData$NMRevFY1.1M=(SPData[,"NetMarginMeanF12M"]-SPData[,"NetMarginMeanF12MLast1M"])/abs(SPData[,"NetMarginMeanF12MLast1M"]) * 100
+	SPData$NMRevFY1.1M[SPData$NMRevFY1.1M %in% c("Inf","-Inf")]=NA
+	
+  #-------------------------------------------------#
+  # FID = 2041, Net Margin Revision past 3 months   #
+  #-------------------------------------------------#
+
+	SPData$NMRevFY1.3M=(SPData[,"NetMarginMeanF12M"]-SPData[,"NetMarginMeanF12MLast3M"])/abs(SPData[,"NetMarginMeanF12MLast3M"]) * 100
+	SPData$NMRevFY1.3M[SPData$NMRevFY1.3M %in% c("Inf","-Inf")]=NA
+
+########
+
+  #-------------------------------------------------#
+  # FID = 2042, Earnings Estimate Variability FY1   #
+  #-------------------------------------------------#
+
+	SPData$EarningsFY1Std=SPData[,"EPSMeanStdFY1"]/abs(SPData[,"EPSMeanFY1"])
+	SPData$EarningsFY1Std[SPData$EarningsFY1Std %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------#
+  # FID = 2043, Earnings Estimate Variability FY2   #
+  #-------------------------------------------------#
+
+	SPData$EarningsFY2Std=SPData[,"EPSMeanStdFY2"]/abs(SPData[,"EPSMeanFY2"])
+	SPData$EarningsFY2Std[SPData$EarningsFY2Std %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2044, Earnings Estimate FY1 Upgrade/Downgrade ratio past 1 month  #
+  #-------------------------------------------------------------------------#
+
+   SPData$EarningsFY1UpDnGrade.1M=SPData[,"Earnings.FY1.UpDngrade.1M."] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2045, Earnings Estimate FY2 Upgrade/Downgrade ratio past 1 month  #
+  #-------------------------------------------------------------------------#
+	
+   SPData$EarningsFY2UpDnGrade.1M=SPData[,"Earnings.FY2.UpDngrade.1M."] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2046, Earnings Estimate FY1 Upgrade/Downgrade ratio past 3 months #
+  #-------------------------------------------------------------------------#
+
+   SPData$EarningsFY1UpDnGrade.3M=SPData[,"Earnings.FY1.UpDngrade.3M."] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2047, Earnings Estimate FY2 Upgrade/Downgrade ratio past 3 months #
+  #-------------------------------------------------------------------------#
+	
+   SPData$EarningsFY2UpDnGrade.3M=SPData[,"Earnings.FY2.UpDngrade.3M."] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2048, Earnings Estimate FY1 Upgrade/Downgrade ratio past 6 months #
+  #-------------------------------------------------------------------------#
+
+   SPData$EarningsFY1UpDnGrade.6M=SPData[,"Earnings.FY1.UpDngrade.6M."] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2049, Earnings Estimate FY2 Upgrade/Downgrade ratio past 6 months #
+  #-------------------------------------------------------------------------#
+
+   SPData$EarningsFY2UpDnGrade.6M=SPData[,"Earnings.FY2.UpDngrade.6M."] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2050, Earnings Estimate FY1 Analyst Coverage 					    #
+  #-------------------------------------------------------------------------#
+	
+   SPData$EarningsFY1Cov=SPData[,"EPS.FY1.Analyst.Coverage"]
+
+  # 3. Quality
+
+  #-------------------------------------------------------------------------#
+  # FID = 2051, EBITDA Margin Estimate Next 12 months 					 	    #
+  #-------------------------------------------------------------------------#
+
+   SPData$EBITDAMarginNTM=SPData[,"EBITDAMarginMeanF12M"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2052, EBIT Margin Estimate Next 12 months 					 	    #
+  #-------------------------------------------------------------------------#
+
+   SPData$EBITMarginNTM=SPData[,"EBITMarginMeanF12M"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2053, Net Margin Estimate Next 12 months 					 	    #
+  #-------------------------------------------------------------------------#
+
+   SPData$NetMarginNTM=SPData[,"NetMarginMeanF12M"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2054, Net Debt/Ebitda Mean Estimate Next 12 months 				    #
+  #-------------------------------------------------------------------------#
+
+   SPData$NetDebtEbitdaNTM=SPData[,"NetdebtEbitdaMeanF12M"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2055, Dividend Payout Ratio Last 12 months				           #
+  #-------------------------------------------------------------------------#
+
+   SPData$DivRatio=1/SPData[,"DivPayout"]
+   SPData$DivRatio[SPData$DivRatio %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2056, Return on invested capital Last 12 months				 	    #
+  #-------------------------------------------------------------------------#
+
+   SPData$ROIC1Y=SPData[,"ROIC.1Y."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2057, Cash return on invested capital Last 12 months              #
+  #-------------------------------------------------------------------------#
+
+   SPData$CROIC1Y=SPData[,"CashFlowROIC.1Y."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2058, Total Debt/Total Capital Latest quarter                     #
+  #-------------------------------------------------------------------------#
+
+   SPData$DebtCapLQ=SPData[,"DebtCapital"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2059, Debt/Total Assets Latest quarter                            #             
+  #-------------------------------------------------------------------------#
+
+   SPData$DebtTALQ=SPData[,"DebtTotalAssets"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2060, Debt/Ebitda Latest quarter                                  #             
+  #-------------------------------------------------------------------------#
+
+   SPData$DebtEbitdaLQ=SPData[,"DebtEBITDA"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2061, Operating CF/Financing CF  Last 12 months                   #                                     
+  #-------------------------------------------------------------------------#
+
+	SPData$OpCFOverFCF1Y=SPData[,"CashFlowOpsPS"]/SPData[,"CashFlowFinPS"]
+	SPData$OpCFOverFCF1Y[SPData$OpCFOverFCF1Y %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2062, Operating CF/Earnings Last 12 months                        #             
+  #-------------------------------------------------------------------------#
+
+	SPData$OpCFOverEarnings1Y=SPData[,"CashFlowOpsPS"]/SPData[,"EPSPast"]
+	SPData$OpCFOverEarnings1Y[SPData$OpCFOverEarnings1Y %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2063, Operating CF/Cash Dividend Last 12 months                   #             
+  #-------------------------------------------------------------------------#
+
+	SPData$OpCFOverCDiv1Y=1/(SPData[,"CashDivCashFlow"]/100)
+	SPData$OpCFOverCDiv1Y[SPData$OpCFOverCDiv1Y %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2064, Net Cash/Total Debt (Past 1 Year)                           #
+  #-------------------------------------------------------------------------#
+
+   SPData$NetCashDebt1Y=SPData[,"NetCashTotalDebt"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2065, Changes in number of shares (%) last 3 months               #
+  #-------------------------------------------------------------------------#
+
+   SPData$SharesChg3M=SPData[,"SharesChg3M"] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2066, Changes in number of shares (%) last 6 months               #
+  #-------------------------------------------------------------------------#
+
+   SPData$SharesChg6M=SPData[,"SharesChg6M"] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2067, Changes in number of shares (%) last 12 months               #
+  #-------------------------------------------------------------------------#
+	
+   SPData$SharesChg12M=SPData[,"SharesChg12M"] * 100
+
+  #-------------------------------------------------------------------------#
+  # FID = 2068, FE Rating            												 #
+  #-------------------------------------------------------------------------#
+
+	SPData$FERating=SPData[,"FERating"]
+
+  # 4. Growth
+
+  #-------------------------------------------------------------------------#
+  # FID = 2069, Earnings Long Term Growth Rate - Forward Looking            #
+  #-------------------------------------------------------------------------#
+
+	SPData$EPS.LTGMean=SPData[,"EPS.LTGMean"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2070, Earnings Estimate NTM 12M weighted - Last 6 months slope   #
+  #-------------------------------------------------------------------------#
+
+   SPData$EPSMeanNTMSlope6M=SPData[,"EPSMeanNTMSlope.6M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2071, Earnings Actual Last 6 months slope                         #
+  #-------------------------------------------------------------------------#
+	
+   SPData$EPSPastSlope6M=SPData[,"EPSPastSlope.6M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2072, Earnings Actual Last 12 months slope                        #
+  #-------------------------------------------------------------------------#
+
+   SPData$EPSPastSlope12M=SPData[,"EPSPastSlope.12M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2073, Earnings Actual Last 36 months slope                        #
+  #-------------------------------------------------------------------------#
+
+   SPData$EPSPastSlope36M=SPData[,"EPSPastSlope.36M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2074, Earnings Actual Last 60 months slope                        #
+  #-------------------------------------------------------------------------#
+	
+   SPData$EPSPastSlope60M=SPData[,"EPSPastSlope.60M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2075, Earnings Actual Last 36 months TStat                        #
+  #-------------------------------------------------------------------------#
+	
+  	SPData$EPSPastTStat36M=SPData[,"EPSPastSlope.36M."]/SPData[,"EPSPastSlopeStd.36M."]
+	SPData$EPSPastTStat36M[SPData$EPSPastTStat36M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2076, Earnings Actual Last 60 months TStat                        #
+  #-------------------------------------------------------------------------#
+
+	SPData$EPSPastTStat60M=SPData[,"EPSPastSlope.60M."]/SPData[,"EPSPastSlopeStd.60M."]
+	SPData$EPSPastTStat60M[SPData$EPSPastTStat60M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2077, Sales Actual Last 6 months slope                            #
+  #-------------------------------------------------------------------------#
+
+   SPData$SalesPSPastSlope6M=SPData[,"SalesPSPastSlope.6M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2078, Sales Actual Last 12 months slope                           #
+  #-------------------------------------------------------------------------#
+
+   SPData$SalesPSPastSlope12M=SPData[,"SalesPSPastSlope.12M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2079, Sales Actual Last 36 months slope                           #
+  #-------------------------------------------------------------------------#
+
+   SPData$SalesPSPastSlope36M=SPData[,"SalesPSPastSlope.36M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2080, Sales Actual Last 60 months slope                           #
+  #-------------------------------------------------------------------------#
+
+   SPData$SalesPSPastSlope60M=SPData[,"SalesPSPastSlope.60M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2081, Sales Actual Last 36 months TStat                        #
+  #-------------------------------------------------------------------------#
+	
+   SPData$SalesPSPastTStat36M=SPData[,"SalesPSPastSlope.36M."]/SPData[,"SalesPSPastSlopeStd.36M."]
+   SPData$SalesPSPastTStat36M[SPData$SalesPSPastTStat36M %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2082, Sales Actual Last 60 months TStat                        #
+  #-------------------------------------------------------------------------#
+
+	SPData$SalesPSPastTStat60M=SPData[,"SalesPSPastSlope.60M."]/SPData[,"SalesPSPastSlopeStd.60M."]
+	SPData$SalesPSPastTStat60M[SPData$SalesPSPastTStat60M %in% c("Inf","-Inf")]=NA
+	
+  #-------------------------------------------------------------------------#
+  # FID = 2083, Net Margin Actual Last 12 months slope                           #
+  #-------------------------------------------------------------------------#
+
+   SPData$NetMarginPastSlope12M=SPData[,"NetMarginPastSlope.12M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2084, Net Margin Actual Last 36 months slope                           #
+  #-------------------------------------------------------------------------#
+	
+   SPData$NetMarginPastSlope36M=SPData[,"NetMarginPastSlope.36M."]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2085, Price slope 10 Day                          				    #
+  #-------------------------------------------------------------------------#
+	
+   SPData$PriceSlope10D=SPData[,"PriceSlope10D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2086, Price slope 20 Day                          				    #
+  #-------------------------------------------------------------------------#
+	
+   SPData$PriceSlope20D=SPData[,"PriceSlope20D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2087, Price slope 50 Day                          				    #
+  #-------------------------------------------------------------------------#
+
+   SPData$PriceSlope50D=SPData[,"PriceSlope50D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2088, Price slope 100 Day                          				    #
+  #-------------------------------------------------------------------------#
+	
+   SPData$PriceSlope100D=SPData[,"PriceSlope100D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2089, Price slope 200 Day                          				    #
+  #-------------------------------------------------------------------------#
+	
+   SPData$PriceSlope200D=SPData[,"PriceSlope200D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2090, Price TStat 10 Day                          				    #
+  #-------------------------------------------------------------------------#
+
+	SPData$PriceTStat10D=SPData[,"PriceSlope10D"]/SPData[,"PriceSlopeStd10D"]
+	SPData$PriceTStat10D[SPData$PriceTStat10D %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2091, Price TStat 20 Day                          				    #
+  #-------------------------------------------------------------------------#
+
+	SPData$PriceTStat20D=SPData[,"PriceSlope20D"]/SPData[,"PriceSlopeStd20D"]
+	SPData$PriceTStat20D[SPData$PriceTStat20D %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2092, Price TStat 50 Day                          				    #
+  #-------------------------------------------------------------------------#
+	
+	SPData$PriceTStat50D=SPData[,"PriceSlope50D"]/SPData[,"PriceSlopeStd50D"]
+	SPData$PriceTStat50D[SPData$PriceTStat50D %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2093, Price TStat 100 Day                          				    #
+  #-------------------------------------------------------------------------#
+	
+	SPData$PriceTStat100D=SPData[,"PriceSlope100D"]/SPData[,"PriceSlopeStd100D"]
+	SPData$PriceTStat100D[SPData$PriceTStat100D %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2094, Price TStat 200 Day                          				    #
+  #-------------------------------------------------------------------------#
+
+	SPData$PriceTStat200D=SPData[,"PriceSlope200D"]/SPData[,"PriceSlopeStd200D"]
+	SPData$PriceTStat200D[SPData$PriceTStat200D %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2095, Money Flow 14 Day                          				    #
+  #-------------------------------------------------------------------------#
+	
+   SPData$MoneyFlow14D=SPData[,"MoneyFlow14D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2096, Money Flow 50 Day                          				    #
+  #-------------------------------------------------------------------------#
+
+   SPData$MoneyFlow50D=SPData[,"MoneyFlow50D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2097, Money Flow 200 Day                          				    #
+  #-------------------------------------------------------------------------#
+
+   SPData$MoneyFlow200D=SPData[,"MoneyFlow200D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2098, RSI 14 Day                          				    		 #
+  #-------------------------------------------------------------------------#
+
+   SPData$RSI14D=SPData[,"RSI14D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2099, RSI 14 Day                          				    		 #
+  #-------------------------------------------------------------------------#
+
+   SPData$RSI50D=SPData[,"RSI50D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2100, Price Momentum 10D                          				    #
+  #-------------------------------------------------------------------------#
+	
+   SPData$PMOM10=SPData[,"PriceRet10D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2101, Price Momentum 20D                          				    #
+  #-------------------------------------------------------------------------#
+	
+   SPData$PMOM20=SPData[,"PriceRet20D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2102, Price Momentum 50D                          				    #
+  #-------------------------------------------------------------------------#
+
+   SPData$PMOM50=SPData[,"PriceRet50D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2103, Price Momentum 100D                          				    #
+  #-------------------------------------------------------------------------#
+
+   SPData$PMOM100=SPData[,"PriceRet100D"]
+
+  #-------------------------------------------------------------------------#
+  # FID = 2104, Price away from MA10                                        #
+  #-------------------------------------------------------------------------#
+
+  	SPData$PriceMA10=SPData[,"PriceClose"]/SPData[,"MA10"] - 1
+	SPData$PriceMA10[SPData$PriceMA10 %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2105, Price away from MA20                                        #
+  #-------------------------------------------------------------------------#
+
+  	SPData$PriceMA20=SPData[,"PriceClose"]/SPData[,"MA20"] - 1
+	SPData$PriceMA20[SPData$PriceMA20 %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2106, Price away from MA50                                        #
+  #-------------------------------------------------------------------------#
+	
+	SPData$PriceMA50=SPData[,"PriceClose"]/SPData[,"MA50"] - 1
+	SPData$PriceMA50[SPData$PriceMA50 %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2107, Price away from MA100                                       #
+  #-------------------------------------------------------------------------#
+
+	SPData$PriceMA100=SPData[,"PriceClose"]/SPData[,"MA100"] - 1
+	SPData$PriceMA100[SPData$PriceMA100 %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2108, Price away from MA200                                       #
+  #-------------------------------------------------------------------------#
+	
+	SPData$PriceMA200=SPData[,"PriceClose"]/SPData[,"MA200"] - 1
+	SPData$PriceMA200[SPData$PriceMA200 %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2109, Price away from 52W High                        				    #
+  #-------------------------------------------------------------------------#
+	
+	SPData$Price52WHigh=SPData[,"PriceClose"]/SPData[,"PriceHigh52W"]-1
+	SPData$Price52WHigh[SPData$Price52WHigh %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2110, Price away from 52W Low                                     #
+  #-------------------------------------------------------------------------#
+
+	SPData$Price52WLow=SPData[,"PriceClose"]/SPData[,"PriceLow52W"]-1
+	SPData$Price52WLow[SPData$Price52WLow %in% c("Inf","-Inf")]=NA
+
+  #-------------------------------------------------------------------------#
+  # FID = 2111, Volatility 1M			                                     #
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2112, Volatility 3M			                                     #
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2113, Volatility 6M			                                     #
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2114, Volatility 12M			                                     #
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2115, TVAL1DOver5D		                                    	    #
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2116, TVAL5DOver20D		                                    	    #
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2117, TVAL20DOver50D		                                    	    #
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2118, Beta 1M			                                     			#
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2119, Beta 3M			                                     			 #
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2120, Beta 6M			                                     			#
+  #-------------------------------------------------------------------------#
+
+  #-------------------------------------------------------------------------#
+  # FID = 2121, Beta 12M			                                     		#
+  #-------------------------------------------------------------------------#
+	FRet=Cs(PriceRetF1D,PriceRetF5D,PriceRetF10D,PriceRetF20D,PriceRetF40D,PriceRetFF10D,PriceRetFF20D)
+	KeyFactors=c(Cs(EC.DATEN,SECID,SML,Sector),row.names(FactorTable),FRet)
+	KeyFactors=substituteString("_",".",KeyFactors,global=T)
+	SPData2=SPData[,KeyFactors]
+
+	FactorNames=c(Cs(Date,SecId,SML,Sector),row.names(FactorTable),FRet)
+
+	names(SPData2)=FactorNames
+
+	if (any(names(SPData)%in%"VWAP"))
+	{
+	
+	ReturnPriceData=SPData[,Cs(EC.DATEN, SECID, CompanyName, SML, Sector, OpenFromYClose, CloseFromOpen, TotRet1D, PriceRet1D,
+	PriceRet5D,PriceRet10D,PriceRet20D,PriceRet50D,PriceRet100D,PriceRet200D,PriceClose,PriceOpen,PriceHigh,PriceLow,
+	PriceHigh52W,PriceLow52W,VWAP,VolumeDaily,MA10,MA20,MA50,MA100,MA200)]
+	
+	}
+	
+	else 
+	{	
+	
+	ReturnPriceData=SPData[,Cs(EC.DATEN, SECID, CompanyName, SML, Sector, OpenFromYClose, CloseFromOpen, TotRet1D, PriceRet1D,
+	PriceRet5D,PriceRet10D,PriceRet20D,PriceRet50D,PriceRet100D,PriceRet200D,PriceClose,PriceOpen,PriceHigh,PriceLow,
+	PriceHigh52W,PriceLow52W,VolumeDaily,MA10,MA20,MA50,MA100,MA200)]
+	
+	}
+	
+	names(ReturnPriceData)[1:2]=Cs(Date,SecId)
+
+	OtherVariable=Cs(EC.DATEN, SECID, CompanyName, SML, Sector, VolumeDaily, SharesOutstanding, SharesLessCloselyHeld, CloselyHeldShares,
+	MarketValue, DividendPS, ShareRepurchaseAmtANN, ShareRepurchaseAmtQTR, ShareSalesAmtANN, ShareSalesAmtQTR,
+	NumInsiderBuy, NumInsiderSales, NumShsBuy, NumShsSold, EPSReportDate, EPSReportDate.QTR., EPSReportDate.ANN.)
+
+	OtherVariable=OtherVariable[OtherVariable%in%names(SPData)]
+
+	OtherData=SPData[,OtherVariable]
+
+	OtherData[,6:ncol(OtherData)]=sapply(OtherData[,6:ncol(OtherData)], function(col)
+	{
+		col[col%in%"@NA"]=NA
+		col=as.numeric(col)
+		return(col)	
+	})
+
+	names(OtherData)[1:2]=Cs(Date,SecId)
+
+	deleter=importData(type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcSqlQuery =paste("DELETE tb_FactorData"," Where Date='",crossdt,"'",sep=""));
+	exportData(SPData2,type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcTable="tb_FactorData",appendToTable = T);
+	
+	deleter=importData(type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcSqlQuery =paste("DELETE tb_ReturnPriceData"," Where Date='",crossdt,"'",sep=""));
+	exportData(ReturnPriceData,type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcTable="tb_ReturnPriceData",appendToTable = T);
+	
+	deleter=importData(type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcSqlQuery =paste("DELETE tb_OtherData"," Where Date='",crossdt,"'",sep=""));
+	exportData(OtherData,type="ODBC", odbcConnection=SPSYS.ODBCconn,odbcTable="tb_OtherData",appendToTable = T);
+	
+})
+
+
