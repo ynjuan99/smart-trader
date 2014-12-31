@@ -61,10 +61,17 @@ namespace UnitTest
         [TestMethod]
         public void TestClassificationWithClassifiedOutput()
         {
-            var trainingData = FactorDataRepository.GetFactorData(100, _sector, _defaultTrainingStartDay, _defaultTrainingEndDay);
+            var trainingData = FactorDataRepository.GetFactorData(100, _sector, 
+                _defaultTrainingStartDay, _defaultTrainingEndDay);
             var testData = FactorDataRepository.GetFactorData(100, _sector, _testDate, _testDate);
-            var model = new ClassificationModelWithClassOutput();
-            model.ClassificationBenchmark = new [] {FactorDataRepository.GetClassificationBenchmark(trainingData, o => o.Outputs[0], o => o.Outputs[0])};            
+            var model = new ClassificationModelWithClassOutput
+            {
+                ClassificationBenchmark = new[]
+                {
+                    FactorDataRepository.GetClassificationBenchmark(trainingData, o => o.Outputs[0], o => o.Outputs[0])
+                }
+            };
+
             model.Train(trainingData);
             model.Test(testData);
             Trace.WriteLine("Statistics: " + model.Statistics);
@@ -87,10 +94,10 @@ namespace UnitTest
             var testData = FactorDataRepository.GetFactorData(100, _sector, _testDate, _testDate);
 
             var model = new CompositeClassificationModel(
-                new Tuple<ClassificationModel, double>(CreateClassificationModel(trainingData1), 7),
-                new Tuple<ClassificationModel, double>(CreateClassificationModel(trainingData2), 3),
-                new Tuple<ClassificationModel, double>(CreateClassificationModel(trainingData3), 2),
-                new Tuple<ClassificationModel, double>(CreateClassificationModel(trainingData4), 1)
+                new Tuple<ClassificationModel, double>(CreateClassificationModel(trainingData1), 0.7),
+                new Tuple<ClassificationModel, double>(CreateClassificationModel(trainingData2), 0.3),
+                new Tuple<ClassificationModel, double>(CreateClassificationModel(trainingData3), 0.2),
+                new Tuple<ClassificationModel, double>(CreateClassificationModel(trainingData4), 0.1)
                 );   
          
             model.Test(testData);
