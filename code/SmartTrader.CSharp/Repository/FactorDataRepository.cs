@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Text;
 
 namespace Repository
 {
@@ -97,7 +98,7 @@ WHERE PriceRetFF20D IS NOT NULL AND PriceRetFF20D_Absolute IS NOT NULL AND {1}
                         {
                             DateTime date = (DateTime)reader[0];
                             int securityId = Convert.ToInt32(reader[1]);
-                            string sector = Convert.ToString(reader[2]);
+                            string sector = Convert.ToString(reader[2]).Trim();
 
                             int width = reader.FieldCount - 3 - 2;
                             var inputs = new double[width];
@@ -203,8 +204,8 @@ VALUES(@q0, @q1, @q2, @q3, @q4, @q5, @q6, @q7, @q8)");
         {
             string sql = string.Format(@"
 SELECT ModelName, Sector, ForYear, ForMonth, Accuracy, Sensitivity, Specificity, Precision, Top10SecurityIds 
-FROM tb_ModelResult 
-WHERE ForYear = {0} AND ForMonth = {1}", year, month);
+FROM {2} 
+WHERE ForYear = {0} AND ForMonth = {1}", year, month, ModelResultRetrievalTable);
             if (models.Length > 0)
             {
                 sql += string.Format(" AND ModelName IN ({0})", string.Join(",", models.Select(o => string.Format("'{0}'", o))));
@@ -250,6 +251,30 @@ WHERE ForYear = {0} AND ForMonth = {1}", year, month);
             }
 
             return result;
+        }
+
+        public static void PersistResultDetail(IList<DataTuple> results)
+        {
+            const string sql = @"INSERT tb_ModelResultDetail(Date, SecId, Sector, Trend) VALUES('{0:yyyy-MM-dd HH:mm:ss:fff}', '{1}', '{2}', {3})";
+            var builder = new StringBuilder();
+            foreach (var result in results)
+            {
+                builder.AppendFormat(sql, result.Date, result.SecurityId, result.Sector, result.ClassificationOutputs.Item2[0] == Trend.Positive ? 1 : -1);
+                builder.AppendLine();
+            }
+
+            var cmd = new SqlCommand(builder.ToString());            
+            using (var conn = new SqlConnection(ConnectionString))
+            {
+                conn.Open();
+                cmd.Connection = conn;
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private static string ModelResultRetrievalTable
+        {
+            get { return ConfigurationManager.AppSettings["ModelResultRetrievalTable"]; }
         }
     }
 }

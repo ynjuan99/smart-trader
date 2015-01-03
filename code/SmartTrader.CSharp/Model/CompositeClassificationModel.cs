@@ -35,8 +35,10 @@ namespace Model
                     voteBase += model.Item2;
                 }
 
-                sample.ClassificationOutputs.Item2[0] = vote > 0 ? Trend.Positive : Trend.Negative;
+                sample.ClassificationOutputs.Item2[0] = vote > 0 ? Trend.Positive : Trend.Negative;                
             }
+
+            FactorDataRepository.PersistResultDetail(samples);
 
             int actualPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive));
             int bothPositive = samples.Count(o => o.ClassificationOutputs.Item1.All(p => p == Trend.Positive) && o.ClassificationOutputs.Item2.All(p => p == Trend.Positive));
