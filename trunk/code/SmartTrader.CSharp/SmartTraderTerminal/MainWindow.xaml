@@ -115,7 +115,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="1*" />
                                         <ColumnDefinition Width="4" />
-                                        <ColumnDefinition Width="2.5*" />
+                                        <ColumnDefinition Width="5*" />
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
@@ -129,7 +129,7 @@
                                     </Grid.RowDefinitions>
                                     <TextBlock Grid.Row="0"
                                         Grid.Column="0"
-                                        Text="Year:" />
+                                        Text="Year" />
                                     <ComboBox Name="InputYear" Grid.Row="0"
                                         Grid.Column="2"
                                         ItemsSource="{Binding Source={x:Static c:ConstantSource.Years}, Mode=OneWay}"
@@ -140,7 +140,7 @@
                                         Foreground="MidnightBlue" />
                                     <TextBlock Grid.Row="2"
                                         Grid.Column="0"
-                                        Text="Month:" />
+                                        Text="Month" />
                                     <ComboBox Name="InputMonth" Grid.Row="2"
                                         Grid.Column="2"
                                         ItemsSource="{Binding Source={x:Static c:ConstantSource.Months}, Mode=OneWay}"
@@ -151,7 +151,7 @@
                                         Foreground="MidnightBlue" />
                                     <TextBlock Grid.Row="4"
                                         Grid.Column="0"
-                                        Text="Sector:" />
+                                        Text="Sector" />
                                     <xceed:CheckListBox Name="InputSectors" Grid.Row="4"
                                         Grid.Column="2"
                                         ItemsSource="{Binding Source={x:Static c:ConstantSource.Sectors}, Mode=OneWay}"
@@ -161,7 +161,7 @@
                                         Foreground="MidnightBlue" />
                                     <TextBlock Grid.Row="6"
                                         Grid.Column="0"
-                                        Text="Model(s):" />
+                                        Text="Model" />
                                     <xceed:CheckListBox Name="InputModels" Grid.Row="6"
                                         Grid.Column="2"
                                         ItemsSource="{Binding Source={x:Static c:ConstantSource.Models}, Mode=OneWay}"
