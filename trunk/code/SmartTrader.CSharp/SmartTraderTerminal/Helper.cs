@@ -22,18 +22,18 @@ namespace SmartTraderTerminal
             "Utilities"
         };
 
-        private static readonly Dictionary<string, string> _Models = new Dictionary<string, string>
+        private static readonly Dictionary<string, Tuple<string, int>> _Models = new Dictionary<string, Tuple<string, int>>
         {
-            { "AdaBoost", "Ada Boost" },
-            { "NN", "Neural Network" },            
-            { "RF", "Random Forest" },
-            { "SVM", "Support Vector Machine" },
-            { "ClusteredAdaBoost", "Clustered Ada Boost" },          
-            { "ClusteredRF", "Clustered Random Forest" },
-            { "ClusteredSVM", "Clustered Support Vector Machine" }
+            { "AdaBoost", new Tuple<string, int>("Ada Boost", 1) },
+            { "NN", new Tuple<string, int>("Neural Network", 2) },            
+            { "RF", new Tuple<string, int>("Random Forest", 3) },
+            { "SVM", new Tuple<string, int>("Support Vector Machine", 4) },
+            { "ClusteredAdaBoost", new Tuple<string, int>("Clustered Ada Boost", 5) },          
+            { "ClusteredRF", new Tuple<string, int>("Clustered Random Forest", 6) },
+            { "ClusteredSVM", new Tuple<string, int>("Clustered Support Vector Machine", 7) }
         };
 
-        private static readonly int[] _Years = Enumerable.Range(2004, 11).ToArray();
+        private static readonly int[] _Years = Enumerable.Range(2004, 11).Reverse().ToArray();
 
         private static readonly int[] _Months = Enumerable.Range(1, 12).ToArray();
 
@@ -42,7 +42,7 @@ namespace SmartTraderTerminal
             get { return _Sectors; }
         }
 
-        public static Dictionary<string, string> Models
+        public static Dictionary<string, Tuple<string, int>> Models
         {
             get { return _Models; }
         }
