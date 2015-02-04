@@ -71,18 +71,18 @@
                     Style="{StaticResource MainBorderStyle}">
                     <HeaderedContentControl Style="{StaticResource MainHCCStyle}"
                         MinHeight="300"
-                        Header="Strategy Contriving">
+                        Header="Strategy Plan">
                         <DockPanel VerticalAlignment="Top"
                             Margin="10">
-                            <StackPanel DockPanel.Dock="Bottom"
-                                Height="40"
-                                HorizontalAlignment="Center"
-                                Orientation="Horizontal">
+                            <StackPanel DockPanel.Dock="Bottom"                              
+                                HorizontalAlignment="Center">
                                 <Button x:Name="BtnStart"
                                     Content="Start"
                                     Margin="6"
-                                    Width="100"
-                                    Click="btnStart_Click" />                                
+                                    Width="120"
+                                    Click="btnStart_Click" />
+                                <TextBlock x:Name="TxtError" Foreground="OrangeRed" FontSize="12" FontStyle="Italic" MinHeight="40" TextAlignment="Center">
+                                </TextBlock>
                             </StackPanel>
                             <Border Style="{StaticResource MainBorderStyle}"
                                 BorderBrush="{StaticResource Brush_HeaderBackground}"
@@ -165,7 +165,7 @@
                                     <xceed:CheckListBox Name="InputModels" Grid.Row="6"
                                         Grid.Column="2"
                                         ItemsSource="{Binding Source={x:Static c:ConstantSource.Models}, Mode=OneWay}"
-                                        DisplayMemberPath="Value"
+                                        DisplayMemberPath="Value.Item1"
                                         ValueMemberPath="Key"
                                         HorizontalContentAlignment="Right"
                                         Foreground="MidnightBlue" />

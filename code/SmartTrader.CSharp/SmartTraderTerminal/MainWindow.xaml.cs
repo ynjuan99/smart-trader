@@ -28,7 +28,16 @@ namespace SmartTraderTerminal
         }
 
         private async void btnStart_Click(object sender, RoutedEventArgs e)
-        {            
+        {
+            string error = "";
+            if (InputSectors.SelectedItems.Count == 0) error += "No Sector selected.\n";
+            if (InputModels.SelectedItems.Count == 0) error += "No Model selected.\n";
+            TxtError.Text = error;
+            if (error.Length > 0)
+            {                
+                return;
+            }
+            
             LoadingAdorner.IsAdornerVisible = true;
             BtnStart.IsEnabled = false;
 
@@ -38,8 +47,8 @@ namespace SmartTraderTerminal
             var sectors = InputSectors.SelectedValue.Split(',');
             var results = await LoadResult(year, month, models, sectors);
 
-            results.ForEach(o => o.ModelDescription = ConstantSource.Models[o.Model]);
-            GridResult.ItemsSource = results;             
+            results.ForEach(o => o.ModelDescription = ConstantSource.Models[o.Model].Item1);
+            GridResult.ItemsSource = results.OrderBy(o => ConstantSource.Models[o.Model].Item2);             
             BtnStart.IsEnabled = true;
             LoadingAdorner.IsAdornerVisible = false;
         }
