@@ -196,7 +196,7 @@
                             HorizontalAlignment="Stretch"
                             VerticalScrollBarVisibility="Auto"
                             MinRowHeight="150"
-                            CanUserAddRows="false">
+                            CanUserAddRows="false" IsReadOnly="True">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="{x:Type DataGridColumnHeader}">
                                     <Setter Property="FontWeight"
