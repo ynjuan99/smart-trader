@@ -1,17 +1,27 @@
 //*
 //#define DEBUG
+#define OS_WINDOWS
 #define SEED 1425281365
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef OS_WINDOWS
+#include <sys\timeb.h>
+#else
+#include <sys/time.h>
+#endif
 
-int sudoku[9][9], success[9][9] = { 0 }, heuristic[9][9] = { 0 }, candidate[9][9][9] = { 0 };
+int sudoku[9][9], success[9][9] = { 0 }, heuristics[9][9] = { 10 }, candidates[9][9][9] = { 0 };
 
 int solveDF(int, int);
 int solveURWALK(int, int);
-//int(*pfsolve)(int, int) = &solveDF;
-int(*pfsolve)(int, int) = &solveURWALK;
+int solveURWALKRestart(int, int);
+
+typedef int (*PFSOLVER)(int, int);
+//PFSOLVER pfsolve = &solveDF;
+//PFSOLVER pfsolve = &solveURWALK;
+PFSOLVER pfsolve = &solveURWALKRestart;
 
 int validRow(int row, int num)
 {
@@ -95,7 +105,7 @@ int validateTest()
 	}
 }
 
-int proceed(int row, int column)
+int step(int row, int column)
 {
 	if (column < 8)
 		return pfsolve(row, column + 1);
@@ -122,6 +132,39 @@ void displayResult(int solved)
 	}
 }
 
+void solve1H()
+{
+	int any, row, column;
+	do
+	{
+		any = 0;
+		for (row = 0; row < 9; row++)
+		{
+			for (column = 0; column < 9; column++)
+			{
+				if (sudoku[row][column] != 0)
+				{
+					heuristics[row][column] = 0;
+				}
+				else
+				{
+					int n = heuristicFunc(row, column);
+					if (n == 1)
+					{
+						sudoku[row][column] = candidates[row][column][0];
+						heuristics[row][column] = 0;
+						any++;
+					}
+					else 
+					{
+						heuristics[row][column] = n;
+					}
+				}
+			}
+		}
+	} while (any > 0);
+}
+
 int solveDF(int row, int column)
 {
 	if (row > 8)
@@ -132,7 +175,7 @@ int solveDF(int row, int column)
 
 	if (sudoku[row][column] != 0)
 	{
-		return proceed(row, column);
+		return step(row, column);
 	}
 	else
 	{
@@ -142,7 +185,7 @@ int solveDF(int row, int column)
 			if ((validRow(row, i) == 1) && (validColumn(column, i) == 1) && (validZone(row, column, i) == 1))
 			{
 				sudoku[row][column] = i;
-				if (proceed(row, column) == 1)
+				if (step(row, column) == 1)
 					return 1;
 			}
 		}
@@ -161,7 +204,7 @@ int solveURWALK(int row, int column)
 
 	if (sudoku[row][column] != 0)
 	{
-		return proceed(row, column);
+		return step(row, column);
 	}
 	else
 	{
@@ -173,7 +216,8 @@ int solveURWALK(int row, int column)
 			if ((validRow(row, r) == 1) && (validColumn(column, r) == 1) && (validZone(row, column, r) == 1))
 			{
 				sudoku[row][column] = r;
-				return proceed(row, column);
+				solve1H();
+				return step(row, column);
 			}
 		}
 
@@ -181,43 +225,132 @@ int solveURWALK(int row, int column)
 	}
 }
 
-void solve1H()
+int solveURWALKRestart(int row, int column)
 {
-	int any, row, column;
-	do
+	if (row > 8)
 	{
-		any = 0;
-		for (row = 0; row < 9; row++)
+		memcpy(success, sudoku, sizeof(success));
+		return 1;
+	}
+
+	if (sudoku[row][column] != 0)
+	{
+		return step(row, column);
+	}
+	else
+	{
+		int i;
+		int offset = rand() % 9;
+		int restart[9][9];
+		memcpy(restart, sudoku, sizeof(restart));
+		for (i = 0; i < 9; i++)
 		{
-			for (column = 0; column < 9; column++)
+			if (i > 0)
+				memcpy(sudoku, restart, sizeof(sudoku));
+			int r = (i + offset) % 9 + 1;
+			if ((validRow(row, r) == 1) && (validColumn(column, r) == 1) && (validZone(row, column, r) == 1))
 			{
-				if (sudoku[row][column] != 0)
+				sudoku[row][column] = r;
+				solve1H();
+				if (step(row, column) == 1)
+					return 1;
+			}
+		}
+		
+		return 0;
+	}
+}
+
+int isSolved()
+{
+	int row, column;
+	for (row = 0; row < 9; row++)
+	{
+		for (column = 0; column < 9; column++)
+		{
+			if (heuristics[row][column] > 0)
+				return 0;
+		}
+	}
+
+	return 1;
+}
+
+int getMostHeuristic(int *locRow, int *locColumn)
+{
+	int most = 10;
+	int row, column;
+	int current, move;
+	for (row = 0; row < 9; row++)
+	{
+		for (column = 0; column < 9; column++)
+		{
+			current = heuristics[row][column];
+			if (current > 0)
+			{
+				move = 0;
+				if (most > current)
+					move = 1;
+				else if (most == current)
 				{
-					heuristic[row][column] = 0;
+					if (rand() % 2 == 1)
+						move = 1;
 				}
-				else
+
+				if (move == 1)
 				{
-					int n = heurestic(row, column);
-					if (n == 1)
-					{
-						sudoku[row][column] = candidate[row][column][0];
-						heuristic[row][column] = 0;
-						any++;
-					}
+					most = current;
+					*locRow = row;
+					*locColumn = column;
 				}
 			}
 		}
-	} while (any > 0);
+	}	
+
+	return most;
 }
 
-int heurestic(int row, int column)
+int solveGreedy()
+{
+	if (isSolved() == 1)
+	{
+		memcpy(success, sudoku, sizeof(success));
+		return 1;
+	}
+	else
+	{
+		solve1H();
+	}
+			
+	int hRow, hColumn;
+	int i;
+	int restart[9][9];
+
+	int most = getMostHeuristic(&hRow, &hColumn);	
+	while (most > 0 && most < 10)
+	{		
+		memcpy(restart, sudoku, sizeof(restart));
+		for (i = 0; i < most; i++)
+		{
+			if (i > 0)
+				memcpy(sudoku, restart, sizeof(sudoku));
+			sudoku[hRow][hColumn] = candidates[hRow][hColumn][i];
+			if (solveGreedy() == 1)
+				return 1;
+		}
+	}
+	
+	return 0;
+}
+
+int heuristicFunc(int row, int column)
 {	
 	int i, n = 0;
 	for (i = 1; i <= 9; i++)
 	{
 		if ((validRow(row, i) == 1) && (validColumn(column, i) == 1) && (validZone(row, column, i) == 1))
 		{
-			candidate[row][column][n++] = i;
+			candidates[row][column][n++] = i;
 		}		
 	}
 	
@@ -294,6 +427,19 @@ int tests[6][9][9] =
 	}
 };
 
+double getMillisecons()
+{
+#ifdef OS_WINDOWS
+	struct timeb now;	
+	ftime(&now);
+	return 1000.0 * now.time + now.millitm;
+#else
+	timeval* t;
+	gettimeofday(&t, NULL);
+	return 1000.0 * t.tv_sec + t.tv_usec / 1000.0;
+#endif
+}
+
 int main(const char** args)
 {
 	srand(SEED);
@@ -310,14 +456,17 @@ int main(const char** args)
 
 		solve1H();
 
-		int start = time(0);
-		int solved = pfsolve(0, 0);
-		int end = time(0);
+		double start = getMillisecons();
+		//urwalk
+		//int solved = pfsolve(0, 0);
+		//gready
+		int solved = solveGreedy();
+		double end = getMillisecons();
 		displayResult(solved);
-		printf("#%d: duration(s) - %d\n\n", i + 1, end - start);
+		printf("#%d: duration(s) - %lf\n\n", i + 1, end - start);
 
-		memset(heuristic, 0, sizeof(heuristic));
-		memset(candidate, 0, sizeof(candidate));
+		memset(heuristics, 0, sizeof(heuristics));
+		memset(candidates, 0, sizeof(candidates));
 	}
 }
 //*/
