@@ -1,56 +1,54 @@
-//#define DEBUG
-#define OS_WINDOWS
-#define SEED 1425281365
+#define DEBUG
+#define SEED 1234567890
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
-
-#ifdef OS_WINDOWS
-#include <sys\timeb.h>
-#else
-#include <sys/time.h>
+#ifdef DEBUG
+#include <time.h>
 #endif
 
 //data
-static int sudoku[9][9], success[9][9] = { 0 }, heuristics[9][9] = { 10 }, candidates[9][9][9] = { 0 };
+static int sudoku[9][9], success[9][9], heuristics[9][9], candidates[9][9][9];
 
 //solver facade
 int solveDF();
 int solveURWalk();
 int solveURWalkRestart();
-int solveGreedy();
+int solveGreedyRestart();
 
 //helper
-static int validateTest();
-static int validRow(int row, int num);
-static int validColumn(int column, int num);
-static int validZone(int row, int column, int num);
+static int isValidTest();
+static int fitsRow(int row, int num);
+static int fitsColumn(int column, int num);
+static int fitsZone(int row, int column, int num);
 static void displayResult(int solved);
-static double getMillisecons();
 static void debugRun(int mode);
 
 //solver backbone
 static int solveDFInternal(int, int);
 static int solveURWalkInternal(int, int);
 static int solveURWalkRestartInternal(int, int);
-static void solveHeuristic();
+static int solveGreedyRestartInternal();
+static void solveHeuristically();
 static int isSolved();
-static int getMostHeuristic(int *locRow, int *locColumn);
-static int heuristicFunc(int row, int column);
+static int stepHeuristically(int *locRow, int *locColumn);
+static int getHeuristic(int row, int column);
 
 //main
 int main(int argc, char *argv[])
 {
 	srand(SEED);
-
-#ifdef DEBUG
-	//readInput("E:\Self\\xKE\\Semester 5\\CSP\\Assigment1\\Sample\\sudoku-eg1.txt");
+	
+#ifdef DEBUG	
 	//debugRun(0);
-	//debugRun(1);
+	//printf("\n\n");
+	debugRun(1);
+	//printf("\n\n");
 	//debugRun(2);
-	debugRun(3);
+	//printf("\n\n");
+	//debugRun(3);
 	return;
 #endif
 
@@ -63,14 +61,14 @@ int main(int argc, char *argv[])
 	{
 		return 0;
 	}
-	if (validateTest() == 0)
+	if (isValidTest() == 0)
 	{
 		printf("Invalid test case.\n");
 		return 0;
 	}
 
 	//double start = getMillisecons();
-	solveHeuristic();
+	//solveHeuristically();
 	int solved = solveDF();
 	//double end = getMillisecons();
 	displayResult(solved, argv[1]);
@@ -91,11 +89,13 @@ int readInput(char* path)
 	int i, row = 0, column;
 	while (row < 9 && fgets(line, 100, file) != NULL)
 	{
-		if (line[0] == '#')
-			continue;
-
 		i = 0;
 		column = 0;
+		while (line[i] == ' ')
+			i++;
+		if (line[i] == '#')		
+			continue;
+				
 		while (column < 9 && line[i] != '\0')
 		{
 			if (line[i] == '_')
@@ -111,6 +111,7 @@ int readInput(char* path)
 
 			i++;
 		}
+
 		row++;
 	}
 		
@@ -195,15 +196,15 @@ void debugRun(int mode)
 	for (i = 0; i < 6; i++)
 	{
 		memcpy(sudoku, tests[i], sizeof(sudoku));
-		if (validateTest() == 0)
+		if (isValidTest() == 0)
 		{
 			printf("Invalid initialization as above.\n");
 			continue;
 		}
 		
 		int solved;
-		double start = getMillisecons();
-		solveHeuristic();
+		int start = time(NULL);
+		solveHeuristically();
 		switch (mode)
 		{
 		case 1:			
@@ -213,17 +214,17 @@ void debugRun(int mode)
 			solved = solveURWalkRestart();
 			break;
 		case 3:
-			solved = solveGreedy();
+			solved = solveGreedyRestart();
 			break;
 		default:
 			solved = solveDF();
 			break;
 		}
-		double end = getMillisecons();
-
+		int end = time(NULL);
+		
 		strMode[0] = mode + '0';
 		displayResult(solved, strMode);
-		printf("#%d: duration(s) - %lf\n\n", i + 1, end - start);
+		printf("#%d: duration(s) - %d\n\n", i + 1, end - start);
 
 		memset(heuristics, 0, sizeof(heuristics));
 		memset(candidates, 0, sizeof(candidates));
@@ -246,20 +247,7 @@ int solveURWalkRestart()
 	return solveURWalkRestartInternal(0, 0);
 }
 
-double getMillisecons()
-{
-#ifdef OS_WINDOWS
-	struct timeb now;
-	ftime(&now);
-	return 1000.0 * now.time + now.millitm;
-#else
-	timeval* t;
-	gettimeofday(&t, NULL);
-	return 1000.0 * t.tv_sec + t.tv_usec / 1000.0;
-#endif
-}
-
-int validRow(int row, int num)
+int fitsRow(int row, int num)
 {
 	int column;
 	for (column = 0; column < 9; column++)
@@ -268,7 +256,7 @@ int validRow(int row, int num)
 	return 1;
 }
 
-int validColumn(int column, int num)
+int fitsColumn(int column, int num)
 {
 	int row;
 	for (row = 0; row < 9; row++)
@@ -277,7 +265,7 @@ int validColumn(int column, int num)
 	return 1;
 }
 
-int validZone(int row, int column, int num)
+int fitsZone(int row, int column, int num)
 {
 	row = (row / 3) * 3;
 	column = (column / 3) * 3;
@@ -289,7 +277,7 @@ int validZone(int row, int column, int num)
 	return 1;
 }
 
-int validateTest()
+int isValidTest()
 {
 	int i, j, k;
 	for (i = 0; i < 9; i++)
@@ -360,7 +348,7 @@ void displayResult(int solved, char* file)
 	}
 }
 
-void solveHeuristic()
+void solveHeuristically()
 {
 	int any, row, column;
 	do
@@ -376,10 +364,11 @@ void solveHeuristic()
 				}
 				else
 				{
-					int n = heuristicFunc(row, column);
+					int n = getHeuristic(row, column);
 					if (n == 1)
 					{
-						sudoku[row][column] = candidates[row][column][0];						
+						sudoku[row][column] = candidates[row][column][0];	
+						heuristics[row][column] = 0;
 						any++;
 					}
 					else
@@ -415,7 +404,7 @@ int solveDFInternal(int row, int column)
 		int i;
 		for (i = 1; i <= 9; i++)
 		{
-			if ((validRow(row, i) == 1) && (validColumn(column, i) == 1) && (validZone(row, column, i) == 1))
+			if ((fitsRow(row, i) == 1) && (fitsColumn(column, i) == 1) && (fitsZone(row, column, i) == 1))
 			{
 				sudoku[row][column] = i;
 				if (solveDFInternal(row, column + 1) == 1)
@@ -452,10 +441,10 @@ int solveURWalkInternal(int row, int column)
 		for (i = 0; i < 9; i++)
 		{
 			int r = (i + offset) % 9 + 1;
-			if ((validRow(row, r) == 1) && (validColumn(column, r) == 1) && (validZone(row, column, r) == 1))
+			if ((fitsRow(row, r) == 1) && (fitsColumn(column, r) == 1) && (fitsZone(row, column, r) == 1))
 			{
 				sudoku[row][column] = r;
-				solveHeuristic();
+				solveHeuristically();
 				return solveURWalkInternal(row, column + 1);
 			}
 		}
@@ -493,10 +482,10 @@ int solveURWalkRestartInternal(int row, int column)
 			if (i > 0)
 				memcpy(sudoku, restart, sizeof(sudoku));
 			int r = (i + offset) % 9 + 1;
-			if ((validRow(row, r) == 1) && (validColumn(column, r) == 1) && (validZone(row, column, r) == 1))
+			if ((fitsRow(row, r) == 1) && (fitsColumn(column, r) == 1) && (fitsZone(row, column, r) == 1))
 			{
 				sudoku[row][column] = r;
-				solveHeuristic();
+				solveHeuristically();
 				if (solveURWalkRestartInternal(row, column + 1) == 1)
 					return 1;
 			}
@@ -508,12 +497,59 @@ int solveURWalkRestartInternal(int row, int column)
 
 int isSolved()
 {
-	int row, column;
+	int count[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	int row, column, i, j, sum;
 	for (row = 0; row < 9; row++)
 	{
 		for (column = 0; column < 9; column++)
 		{
-			if (heuristics[row][column] > 0)
+			count[sudoku[row][column]]++;
+		}
+	}
+
+	for (i = 0; i < 10; i++)
+	{
+		if (i == 0)
+		{
+			if (count[i] > 0)
+				return 0;
+		}
+		else if (count[i] != 9)
+			return 0;
+	}
+	
+	for (row = 0; row < 9; row++)
+	{
+		sum = 0;
+		for (column = 0; column < 9; column++)
+			sum += sudoku[row][column];
+		if (sum != 45)
+			return 0;
+	}
+
+	for (column = 0; column < 9; column++)	
+	{
+		sum = 0;
+		for (row = 0; row < 9; row++)
+			sum += sudoku[row][column];
+		if (sum != 45)
+			return 0;
+	}
+
+	for (row = 0; row < 3; row++)
+	{		
+		for (column = 0; column < 3; column++)
+		{
+			sum = 0;
+			for (i = 0; i < 3; i++)
+			{
+				for (j = 0; j  < 3; j ++)
+				{
+					sum += sudoku[row * 3 + i][column * 3 + j];
+				}
+			}
+			if (sum != 45)
 				return 0;
 		}
 	}
@@ -521,7 +557,7 @@ int isSolved()
 	return 1;
 }
 
-int getMostHeuristic(int *locRow, int *locColumn)
+int stepHeuristically(int *locRow, int *locColumn)
 {
 	int most = 10;
 	int row, column;
@@ -555,7 +591,12 @@ int getMostHeuristic(int *locRow, int *locColumn)
 	return most;
 }
 
-int solveGreedy()
+int solveGreedyRestart()
+{
+	solveGreedyRestartInternal();
+}
+
+int solveGreedyRestartInternal()
 {
 	if (isSolved() == 1)
 	{
@@ -564,26 +605,24 @@ int solveGreedy()
 	}
 	else
 	{
-		solveHeuristic();
+		solveHeuristically();
 	}
 
 	int hRow, hColumn;
 	int i;
 	int restart[9][9];
 
-	int most = getMostHeuristic(&hRow, &hColumn);
+	int most = stepHeuristically(&hRow, &hColumn);
 	while (most > 1 && most < 10)
 	{
-		memcpy(restart, sudoku, sizeof(restart));
-		int r, offset = rand() % most;
+		memcpy(restart, sudoku, sizeof(restart));		
 		for (i = 0; i < most; i++)
 		{
 			if (i > 0)
 				memcpy(sudoku, restart, sizeof(sudoku));
-
-			r = (i + offset) % most;
-			sudoku[hRow][hColumn] = candidates[hRow][hColumn][r];
-			if (solveGreedy() == 1)
+			
+			sudoku[hRow][hColumn] = candidates[hRow][hColumn][i];
+			if (solveGreedyRestartInternal() == 1)
 				return 1;
 		}
 	}
@@ -591,12 +630,12 @@ int solveGreedy()
 	return 0;
 }
 
-int heuristicFunc(int row, int column)
+int getHeuristic(int row, int column)
 {
 	int i, n = 0;
 	for (i = 1; i <= 9; i++)
 	{
-		if ((validRow(row, i) == 1) && (validColumn(column, i) == 1) && (validZone(row, column, i) == 1))
+		if ((fitsRow(row, i) == 1) && (fitsColumn(column, i) == 1) && (fitsZone(row, column, i) == 1))
 		{
 			candidates[row][column][n++] = i;
 		}
