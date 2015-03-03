@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="sudoku.urwalk.c">
+    <ClCompile Include="sudoku.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
