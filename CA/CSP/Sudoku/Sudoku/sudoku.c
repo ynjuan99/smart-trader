@@ -23,7 +23,7 @@ static int isValidTest();
 static int fitsRow(int row, int num);
 static int fitsColumn(int column, int num);
 static int fitsZone(int row, int column, int num);
-static void displayResult(int solved);
+static void displayResult(int solved, char* which);
 static void debugRun(int mode);
 
 //solver backbone
@@ -329,11 +329,11 @@ int isValidTest()
 	}
 }
 
-void displayResult(int solved, char* file)
+void displayResult(int solved, char* which)
 {
 	if (solved == 1)
 	{
-		printf("# %s: satisfiable solution\n", file);
+		printf("# %s: satisfiable solution\n", which);
 		int row, column;
 		for (row = 0; row < 9; row++)
 		{
@@ -344,7 +344,7 @@ void displayResult(int solved, char* file)
 	}
 	else
 	{
-		printf("# %s: unsolved\n", file);
+		printf("# %s: unsolved\n", which);
 	}
 }
 
