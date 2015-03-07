@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 #define SEED 1234567890
 #define MAXTRY 50
 #define MAXSTEP 10000
@@ -26,9 +26,12 @@ static int annealingSAT();
 static solver psolver = &annealingSAT;
 
 //helper
+static int readInput(char* path);
 static void init(int sudoku[][9]);
 static void displayResult(int solved, char* which, int result[][9]);
 static void debugRun();
+int isValidTest(int sudoku[][9]);
+int isSolved(int sudoku[][9]);
 
 
 //main
@@ -288,6 +291,8 @@ int isValidTest(int sudoku[][9])
 			}
 		}
 	}
+
+	return 1;
 }
 
 void updateCandidate(int row, int column, int sudoku[][9])
@@ -502,7 +507,7 @@ int fillOneZone(int sudoku[][9], int zoneRow, int zoneColumn, int value[], int r
 	if (c == 3)
 	{
 		r++;
-		c == 0;
+		c = 0;
 	}
 	if (r == 3)
 		return 1;
@@ -561,14 +566,15 @@ int validateZone(int sudoku[][9], int zoneRow, int zoneColumn)
 
 void fillZone(int sudoku[][9])
 {
-	int zoneRow, zoneColumn, cn, found;
+	int zoneRow, zoneColumn, cn, offset, found;
 	int value[10];
+	int row, column, r, c, v, i;
+
 	for (zoneRow = 0; zoneRow < 3; zoneRow++)
 	{
 		for (zoneColumn = 0; zoneColumn < 3; zoneColumn++)
 		{			
-			int row, column, r, c, v, i;
-			int n, offset, found;
+			
 			//init value
 			for (i = 0; i < 10; i++)
 				value[i] = i;
@@ -684,7 +690,7 @@ NEXTZONE:
 						for (c = 0; c < 3; c++)
 						{							
 							column = zcolumn * 3 + (c + offsetc2) % 3;
-							if ((row != row1 || column != column1) && _kickoff[row][column] == 0)
+							if ((row != *row1 || column != *column1) && _kickoff[row][column] == 0)
 							{
 								found2 = 1;
 								*row2 = row;
@@ -713,7 +719,7 @@ int greedySwop(int sudoku[][9], int *row1, int *column1, int *row2, int *column2
 {
 	int delta, min = 0;
 	int r1, c1, r2, c2;
-	int i, j, row, column;
+	int i, j;
 
 	for (i = 0; i < 81; i++)
 	{
@@ -797,7 +803,7 @@ int backtrackSAT()
 
 int urwalkSAT()
 {		
-	int i, r, row, column;
+	int i;
 	fillZone(_sudoku);
 	for (i = 0; i < MAXSTEP; i++)
 	{
@@ -811,7 +817,7 @@ int urwalkSAT()
 
 int greedySAT()
 {
-	int restart, i, r, row, column, violations;
+	int restart, i;
 	for (restart = 0; restart < MAXTRY; restart++)
 	{
 		memcpy(_sudoku, _kickoff, sizeof(_sudoku));
@@ -829,8 +835,7 @@ int greedySAT()
 
 int annealingSAT()
 {
-	int restart, i, r, row, column, violations;
-	double proba;
+	int restart;
 	double alpha = 0.999;
 	double temperature = 400.0;
 	double epsilon = 0.001;
