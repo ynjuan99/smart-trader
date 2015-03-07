@@ -18,42 +18,26 @@ static int _candidate[9][9][9] = { 0 };
 
 //solver facade
 typedef int(*solver)();
+typedef int swopper(int sudoku[][9], int *row1, int *column1, int *row2, int *column2);
 static int backtrackSAT();
 static int urwalkSAT();
 static int greedySAT();
 static int annealingSAT();
-solver psolver = &annealingSAT;
+static solver psolver = &annealingSAT;
 
 //helper
-typedef int swopper(int sudoku[][9], int *row1, int *column1, int *row2, int *column2);
-static int isValidTest(int sudoku[][9]);
-static int fitsRow(int row, int num, int sudoku[][9]);
-static int fitsColumn(int column, int num, int sudoku[][9]);
-static int fitsZone(int row, int column, int num, int sudoku[][9]);
-
 static void init(int sudoku[][9]);
 static void displayResult(int solved, char* which, int result[][9]);
-static void debugRun(int mode);
+static void debugRun();
 
-//solver backbone
-static void solveHeuristically(int sudoku[][9]);
-static int isSolved(int sudoku[][9]);
-static void updateCandidate(int row, int column);
 
 //main
 int main(int argc, char *argv[])
 {
 	srand(SEED);
 	
-#ifdef DEBUG	
-//#else
-	debugRun(0);
-	//printf("\n\n");
-	//debugRun(1);
-	//printf("\n\n");
-	//debugRun(2);
-	//printf("\n\n");
-	//debugRun(3);
+#ifdef DEBUG
+	debugRun();
 	return;
 #endif
 
@@ -121,7 +105,7 @@ int readInput(char* path)
 	return 1;	
 }
 
-void debugRun(int mode)
+void debugRun()
 {
 	int tests[6][9][9] =
 	{
@@ -193,10 +177,7 @@ void debugRun(int mode)
 		}
 	};
 
-	int i;
-	char strMode[3] = { 0 };
-	strMode[0] = mode + '0';
-	
+	int i;		
 	for (i = 0; i < 6; i++)
 	{
 		memcpy(_sudoku, tests[i], sizeof(_sudoku));		
@@ -214,9 +195,7 @@ void debugRun(int mode)
 			solved = psolver();
 		}
 		
-		strMode[1] = i + '0';
-		//displayResult(1, strMode, _kickoff);
-		displayResult(solved, strMode, _sudoku);
+		displayResult(solved, "###debug", _sudoku);
 		
 		memset(_sudoku, 0, sizeof(_sudoku));
 		memset(_kickoff, 0, sizeof(_kickoff));
@@ -309,6 +288,21 @@ int isValidTest(int sudoku[][9])
 			}
 		}
 	}
+}
+
+void updateCandidate(int row, int column, int sudoku[][9])
+{
+	int i, n = 0;
+	for (i = 1; i <= 9; i++)
+	{
+		if ((fitsRow(row, i, sudoku) == 1) && (fitsColumn(column, i, sudoku) == 1) && (fitsZone(row, column, i, sudoku) == 1))
+		{
+			_candidate[row][column][n] = i;
+			n++;
+		}
+	}
+
+	_candidateCount[row][column] = n;
 }
 
 void displayResult(int solved, char* which, int result[][9])
@@ -499,21 +493,6 @@ int deltaViolations(int sudoku[][9], int row1, int column1, int row2, int column
 	sudoku[row2][column2] = v2;
 
 	return after - before;
-}
-
-void updateCandidate(int row, int column, int sudoku[][9])
-{
-	int i, n = 0;
-	for (i = 1; i <= 9; i++)
-	{
-		if ((fitsRow(row, i, sudoku) == 1) && (fitsColumn(column, i, sudoku) == 1) && (fitsZone(row, column, i, sudoku) == 1))
-		{
-			_candidate[row][column][n] = i;
-			n++;
-		}
-	}
-
-	_candidateCount[row][column] = n;
 }
 
 ///Solver - BEGIN
