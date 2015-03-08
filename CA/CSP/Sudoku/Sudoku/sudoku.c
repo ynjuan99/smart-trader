@@ -1,3 +1,10 @@
+/*
+Title:	CS5215 Assignment 1
+Author: Gao Yong (A0107658X)
+Email:	a0107658@u.nus.edu
+Date:	2015-03-07
+*/
+
 #define DEBUG
 #define SEED 1234567890
 #define MAXTRY 50
@@ -12,20 +19,32 @@
 
 //data
 static int _sudoku[9][9] = { 0 };
+//sudoku after heuristic filling before solver solving
 static int _kickoff[9][9] = { 0 };
+//heuristic constraints for each cell
 static int _candidateCount[9][9] = { 0 };
 static int _candidate[9][9][9] = { 0 };
 
+
 //solver facade
 typedef int(*solver)();
-typedef int swopper(int sudoku[][9], int *row1, int *column1, int *row2, int *column2);
-static int backtrackSAT();
-static int urwalkSAT();
-static int greedySAT();
-static int annealingSAT();
-static solver psolver = &annealingSAT;
+static int solve(solver psolver, int sudoku[][9]);
 
-//helper
+//flip by swop 
+typedef int swopper(int sudoku[][9], int *row1, int *column1, int *row2, int *column2);
+//depth-first back trackink
+static int backtrackSAT();
+//uninformed random walk 
+static int urwalkSAT();
+//greedy 
+static int greedySAT();
+//simulated annealing 
+static int annealingSAT();
+//solver selection
+static solver psolver = &annealingSAT;
+//
+
+//helper functions
 static int readInput(char* path);
 static void init(int sudoku[][9]);
 static void displayResult(int solved, char* which, int result[][9]);
@@ -61,10 +80,8 @@ int main(int argc, char *argv[])
 
 	init(_sudoku);
 	int solved = isSolved(_sudoku);
-	if (solved == 0)
-	{
-		solved = psolver();
-	}
+	if (solved == 0)	
+		solved = solve(psolver, _sudoku);	
 
 	displayResult(solved, argv[1], _sudoku);
 }
@@ -194,10 +211,8 @@ void debugRun()
 
 		int solved = isSolved(_sudoku);
 		if (solved == 0)
-		{
-			solved = psolver();
-		}
-		
+			solved = solve(psolver, _sudoku);		
+
 		displayResult(solved, "###debug", _sudoku);
 		
 		memset(_sudoku, 0, sizeof(_sudoku));
@@ -500,8 +515,6 @@ int deltaViolations(int sudoku[][9], int row1, int column1, int row2, int column
 	return after - before;
 }
 
-///Solver - BEGIN
-
 int fillOneZone(int sudoku[][9], int zoneRow, int zoneColumn, int value[], int r, int c)
 {
 	if (c == 3)
@@ -715,6 +728,7 @@ void getCoordinate(int i, int *row, int *column)
 	*column = i % 9;
 }
 
+///Solver - BEGIN
 int greedySwop(int sudoku[][9], int *row1, int *column1, int *row2, int *column2)
 {
 	int delta, min = 0;
@@ -837,7 +851,7 @@ int annealingSAT()
 {
 	int restart;
 	double alpha = 0.999;
-	double temperature = 400.0;
+	double temperature = 450.0;
 	double epsilon = 0.001;
 	double delta;
 
