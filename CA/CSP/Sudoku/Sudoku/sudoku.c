@@ -894,7 +894,7 @@ int annealingSAT()
 {
 	int restart;
 	double alpha = 0.999;
-	double temperature = 450.0;
+	double T = 450.0, temperature;
 	double epsilon = 0.001;
 	double delta;
 
@@ -904,7 +904,7 @@ int annealingSAT()
 		memcpy(_sudoku, _kickoff, sizeof(_sudoku));
 		fillZone(_sudoku);
 			
-		temperature = 400.0;
+		temperature = T;
 		while (temperature > epsilon)
 		{				
 			randomSwop(_sudoku, &row1, &column1, &row2, &column2);			
