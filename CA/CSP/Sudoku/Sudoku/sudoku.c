@@ -45,7 +45,7 @@ static solver psolver = &annealingSAT;
 //
 
 //helper functions
-static int readInput(char* path);
+static int readInput(char* path, int sudoku[][9]);
 static void init(int sudoku[][9]);
 static void displayResult(int solved, char* which, int result[][9]);
 static void debugRun();
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 		printf("Usage: \n\tsudoku <sudoku-input-file.txt>\n");
 		return 0;
 	}
-	if (readInput(argv[1]) != 1)
+	if (readInput(argv[1], _sudoku) != 1)
 	{
 		return 0;
 	}
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 	displayResult(solved, argv[1], _sudoku);
 }
 
-int readInput(char* path)
+int readInput(char* path, int sudoku[][9])
 {
 	char line[100];
 	FILE *file;
@@ -109,11 +109,16 @@ int readInput(char* path)
 				
 		while (column < 9 && line[i] != '\0')
 		{
-			if (isdigit(line[i]))
+			if (line[i] == '_')
 			{
-				_kickoff[row][column] = line[i] - '0';
+				sudoku[row][column] = 0;
 				column++;
-			}	
+			}
+			else if (isdigit(line[i]))
+			{
+				sudoku[row][column] = line[i] - '0';
+				column++;
+			}			
 
 			i++;
 		}
