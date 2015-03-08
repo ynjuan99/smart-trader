@@ -5,7 +5,7 @@ Email:	a0107658@u.nus.edu
 Date:	2015-03-07
 */
 
-#define DEBUG
+//#define DEBUG
 #define SEED 1234567890
 #define MAXTRY 50
 #define MAXSTEP 10000
@@ -29,8 +29,7 @@ static int _candidate[9][9][9] = { 0 };
 //solver facade
 typedef int(*solver)();
 static int solve(solver psolver, int sudoku[][9]);
-
-//flip by swop 
+ 
 typedef int swopper(int sudoku[][9], int *row1, int *column1, int *row2, int *column2);
 //depth-first back trackink
 static int backtrackSAT();
@@ -40,7 +39,6 @@ static int urwalkSAT();
 static int greedySAT();
 //simulated annealing 
 static int annealingSAT();
-//solver selection
 static solver psolver = &annealingSAT;
 //
 
@@ -382,12 +380,12 @@ void init(int sudoku[][9])
 int solve(solver psolver, int sudoku[][9])
 {
 #ifdef DEBUG
-	int start = time(NULL);
+	unsigned long start = time(NULL);
 #endif
 	int solved = psolver(sudoku);
 #ifdef DEBUG
-	int end = time(NULL);
-	printf("######## solving duration(s) - %d\n\n", end - start);
+	unsigned long end = time(NULL);
+	printf("######## solving duration(s) - %lu\n\n", end - start);
 #endif
 	return solved;
 }
@@ -734,6 +732,7 @@ int greedySwop(int sudoku[][9], int *row1, int *column1, int *row2, int *column2
 	int delta, min = 0;
 	int r1, c1, r2, c2;
 	int i, j;
+	int minima[100][2], n = 0, s;
 
 	for (i = 0; i < 81; i++)
 	{
@@ -747,14 +746,19 @@ int greedySwop(int sudoku[][9], int *row1, int *column1, int *row2, int *column2
 					getCoordinate(j, &r2, &c2);
 					if (_kickoff[r2][c2] == 0)
 					{					
-						delta = deltaViolations(sudoku, r1, c1, r2, c2);						
-						if (delta < min || delta == min && rand() % 100 > 50)							
+						delta = deltaViolations(sudoku, r1, c1, r2, c2);	
+						if (delta < 0 && delta <= min)
 						{
-							min = delta;
-							*row1 = r1;
-							*column1 = c1;
-							*row2 = r2;
-							*column2 = c2;
+							if (delta < min)
+							{
+								min = delta;
+								memset(minima, 0, sizeof(minima));
+								n = 0;
+							}
+
+							minima[n][0] = i;
+							minima[n][1] = j;
+							n++;
 						}
 					}
 				}
@@ -762,7 +766,18 @@ int greedySwop(int sudoku[][9], int *row1, int *column1, int *row2, int *column2
 		}
 	}
 
-	return min;	
+	if (n > 0)
+	{
+		if (n == 1)
+			s = 1;
+		else
+			s = rand() % n;
+
+		getCoordinate(minima[s][0], row1, column1);
+		getCoordinate(minima[s][1], row2, column2);
+	}
+
+	return min;
 }
 
 void flipZone(int sudoku[][9], swopper swop)
