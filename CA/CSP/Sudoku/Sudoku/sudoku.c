@@ -1,8 +1,10 @@
 /*
-Title:	CS5215 Assignment 1
-Author: Gao Yong (A0107658X)
-Email:	a0107658@u.nus.edu
-Date:	2015-03-07
+Title:			CS5215 Assignment 1
+Author:			Gao Yong (A0107658X)
+Email:			a0107658@u.nus.edu
+Date:			2015-03-07
+Remarks:		The code is tested in Ubuntu Linux and Windows and both can compile and run, while Sunfire or Tembusu is not tested.
+Solver:			Changeable at line 44 via  --- static solver psolver = &annealingSAT; ---, the simulated annealing is selected in final release.
 */
 
 //#define DEBUG
@@ -125,7 +127,7 @@ int readInput(char* path)
 
 void debugRun()
 {
-	int tests[6][9][9] =
+	int tests[8][9][9] =
 	{
 		{
 			{ 5, 3, 0, 0, 7, 0, 0, 0, 0 },
@@ -192,11 +194,34 @@ void debugRun()
 			{ 7, 0, 0, 0, 0, 0, 0, 0, 8 },
 			{ 0, 0, 4, 0, 0, 0, 1, 0, 0 },
 			{ 0, 0, 3, 6, 9, 7, 5, 0, 0 },
+		},
+		{
+			{ 0, 0, 1, 0, 0, 0, 8, 0, 0 },
+			{ 0, 5, 0, 0, 1, 0, 0, 4, 0 },
+			{ 0, 0, 0, 2, 0, 0, 0, 0, 7 },
+			{ 0, 0, 7, 0, 0, 5, 0, 8, 0 },
+			{ 4, 0, 0, 0, 6, 0, 0, 0, 9 },
+			{ 0, 2, 0, 4, 0, 0, 5, 0, 0 },
+			{ 3, 0, 0, 0, 0, 7, 0, 0, 0 },
+			{ 0, 7, 0, 0, 2, 0, 0, 9, 0 },
+			{ 0, 0, 4, 0, 0, 0, 1, 0, 0 },
+		},
+		{
+			{ 0, 0, 0, 0, 7, 0, 6, 0, 5 },
+			{ 0, 0, 0, 0, 0, 4, 0, 8, 0 },
+			{ 0, 0, 0, 0, 0, 6, 0, 7, 0 },
+			{ 0, 7, 3, 0, 0, 0, 2, 0, 0 },
+			{ 5, 0, 0, 0, 0, 0, 0, 0, 4 },
+			{ 0, 0, 4, 0, 0, 0, 9, 6, 0 },
+			{ 0, 8, 0, 4, 0, 0, 0, 0, 3 },
+			{ 0, 5, 0, 2, 0, 0, 0, 0, 0 },
+			{ 7, 0, 6, 0, 8, 0, 0, 0, 0 },
 		}
 	};
 
-	int i;		
-	for (i = 0; i < 6; i++)
+	int i;
+	char label[20] = { 0 };
+	for (i = 0; i < 8; i++)
 	{
 		memcpy(_sudoku, tests[i], sizeof(_sudoku));		
 		if (isValidTest(_sudoku) == 0)
@@ -211,7 +236,8 @@ void debugRun()
 		if (solved == 0)
 			solved = solve(psolver, _sudoku);		
 
-		displayResult(solved, "###debug", _sudoku);
+		sprintf(label, "sudoku-eg%d.txt", i + 1);
+		displayResult(solved, label, _sudoku);
 		
 		memset(_sudoku, 0, sizeof(_sudoku));
 		memset(_kickoff, 0, sizeof(_kickoff));
@@ -340,6 +366,8 @@ void displayResult(int solved, char* which, int result[][9])
 	{
 		printf("# %s: unsolved\n", which);
 	}
+
+	printf("\n\n");
 }
 
 void solveHeuristically(int sudoku[][9])
