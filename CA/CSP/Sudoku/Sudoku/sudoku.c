@@ -3,8 +3,8 @@ Title:			CS5215 Assignment 1
 Author:			Gao Yong (A0107658X)
 Email:			a0107658@u.nus.edu
 Date:			2015-03-07
-Remarks:		The code is tested in Ubuntu Linux and Windows and both can compile and run, while Sunfire or Tembusu is not tested.
 Solver:			Changeable at line 44 via  --- static solver psolver = &annealingSAT; ---, the simulated annealing is selected in final release.
+Remarks:		The code is tested in Ubuntu Linux and Windows and both can compile and run, while Sunfire or Tembusu is not tested.
 */
 
 //#define DEBUG
