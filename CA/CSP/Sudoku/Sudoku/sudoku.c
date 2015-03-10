@@ -49,8 +49,8 @@ static int readInput(char* path, int sudoku[][9]);
 static void init(int sudoku[][9]);
 static void displayResult(int solved, char* which, int result[][9]);
 static void debugRun();
-int isValidTest(int sudoku[][9]);
-int isSolved(int sudoku[][9]);
+static int isValidTest(int sudoku[][9]);
+static int isSolved(int sudoku[][9]);
 
 
 //main
